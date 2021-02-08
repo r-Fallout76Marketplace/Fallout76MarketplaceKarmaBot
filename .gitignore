@@ -1,0 +1,6 @@
+CONFIG.py
+__pycache__
+venv
+.idea
+karma_logs.db
+submission_logs.db
