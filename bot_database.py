@@ -75,7 +75,7 @@ class BotDatabase:
     def load_submissions_from_downtime(self, downtime_length_seconds):
         time_now = time.time()
         # Gets 1000 new submissions
-        for submission in CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).new():
+        for submission in CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).new(limit=None):
             # Only saves the submissions that were posted during the downtime
             if (time_now - submission.created_utc) <= downtime_length_seconds:
                 # Only saves the submissions with trading flair
@@ -88,7 +88,8 @@ class BotDatabase:
                                                                                       submission.created_utc,
                                                                                       submission.permalink))
                     except sqlite3.IntegrityError:
-                        print("Skipped duplicate submission " + submission.id)
+                        # Skipping Duplicate Submissions
+                        pass
         self.submission_db_conn.commit()
         print('Read the submissions from downtime')
 
@@ -107,13 +108,17 @@ class BotDatabase:
     # Loads submission if the submission flair is correct
     def load_submission(self, submission):
         if flair_checks(submission):
-            self.submission_logs_db_cursor.execute("""INSERT INTO submissions VALUES ('{}', '{}', '{}', '{}', 
-                                                    '{}')""".format(submission.id,
-                                                                    submission.author.name,
-                                                                    submission.link_flair_text,
-                                                                    submission.created_utc,
-                                                                    submission.permalink))
-        self.submission_db_conn.commit()
+            try:
+                self.submission_logs_db_cursor.execute("""INSERT INTO submissions VALUES ('{}', '{}', '{}', '{}', 
+                                                                    '{}')""".format(submission.id,
+                                                                                    submission.author.name,
+                                                                                    submission.link_flair_text,
+                                                                                    submission.created_utc,
+                                                                                    submission.permalink))
+                self.submission_db_conn.commit()
+            except sqlite3.IntegrityError:
+                # Skipping Duplicate Submissions
+                pass
 
     def karma_plus_command_non_mod_users(self, comment, user_database_obj):
         # Checks if we have the submission in database otherwise assumes that the flair was changed

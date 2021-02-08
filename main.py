@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import sys
 import time
@@ -70,6 +71,7 @@ def main():
 
 
 def manage_data(start_time_p):
+    mutex = Lock()
     try:
         seconds_in_week = 604800
         time_now = time.time()
@@ -87,15 +89,19 @@ def manage_data(start_time_p):
             submission = CONFIG.reddit_2.submission(row[0])
             flair_functions.close_post_trade(submission)
             bot_responses.close_submission_comment(submission, time_expired=True)
+
+        mutex.acquire()
         submission_logs_db_cursor.execute(
             "DELETE FROM submissions WHERE time_created_utc <= '{}'".format(unix_time_week_ago))
+        # commit
+        submission_db_conn.commit()
 
         # delete the record of comments that are of deleted submissions
         karma_logs_db_cursor.execute(
             "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_week_ago))
         # commit
-        submission_db_conn.commit()
         karma_logs_db_conn.commit()
+        mutex.release()
 
         time_now = time.localtime().tm_hour
         if time_now == start_time_p:
@@ -145,3 +151,7 @@ if __name__ == '__main__':
         print("Backing up the data...")
         schedule.run_all()
         print("Bot has stopped!")
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit()
