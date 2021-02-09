@@ -32,7 +32,7 @@ def flair_checks(comment_or_submission):
 
 # Checks if the author is mod
 def is_mod(author):
-    moderators_list = CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).moderator()
+    moderators_list = CONFIG.fallout76marketplace_1.moderator()
     if author in moderators_list:
         return True
     else:
@@ -75,7 +75,7 @@ class BotDatabase:
     def load_submissions_from_downtime(self, downtime_length_seconds):
         time_now = time.time()
         # Gets 1000 new submissions
-        for submission in CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).new(limit=None):
+        for submission in CONFIG.fallout76marketplace_2.new(limit=None):
             # Only saves the submissions that were posted during the downtime
             if (time_now - submission.created_utc) <= downtime_length_seconds:
                 # Only saves the submissions with trading flair
@@ -102,8 +102,9 @@ class BotDatabase:
             "SELECT * FROM comments WHERE time_created_utc >= '{}'".format(unix_time_at_previous_midnight))
         table = self.karma_logs_db_cursor.fetchall()
         for row in table:
-            comment = CONFIG.reddit_1.comment(id=row[0])
+            comment = CONFIG.reddit_2.comment(id=row[0])
             user_database_obj.log_karma_command(comment)
+        print("Loaded today's karma logs")
 
     # Loads submission if the submission flair is correct
     def load_submission(self, submission):
@@ -165,11 +166,11 @@ class BotDatabase:
                 user_database_obj.log_karma_command(comment)
                 # store comment in karma logs database
                 self.karma_logs_db_cursor.execute("""INSERT INTO comments VALUES ('{}', '{}', '{}', '{}', 
-                                                    '{}', '{}')""".format(comment.id, comment.submission.id,
-                                                                          comment.submission.created_utc,
-                                                                          comment.author.name,
-                                                                          comment.parent().author.name,
-                                                                          comment.created_utc, comment.permalink))
+                                                    '{}', '{}', '{}')""".format(comment.id, comment.submission.id,
+                                                                                comment.submission.created_utc,
+                                                                                comment.author.name,
+                                                                                comment.parent().author.name,
+                                                                                comment.created_utc, comment.permalink))
                 self.karma_logs_db_conn.commit()
                 # reply to user
                 bot_responses.karma_rewarded_comment(comment)

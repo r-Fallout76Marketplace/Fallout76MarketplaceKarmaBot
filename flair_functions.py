@@ -7,7 +7,7 @@ import bot_responses
 
 # Checks if the author is mod
 def is_mod(author):
-    moderators_list = CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).moderator()
+    moderators_list = CONFIG.fallout76marketplace_1.moderator()
     if author in moderators_list:
         return True
     else:
@@ -22,24 +22,20 @@ def assign_karma(p_comment, user_flair):
 
     # If user is mod assigns the green flair
     if is_mod(p_comment.author):
-        CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text=str(user_flair),
-                                                                   flair_template_id=
-                                                                   CONSTANTS.MODS_AND_COURIERS_FLAIR)
+        CONFIG.fallout76marketplace_1.flair.set(author_name, text=str(user_flair),
+                                                flair_template_id=CONSTANTS.MODS_AND_COURIERS_FLAIR)
     else:
         # otherwise assigns flair based on karma value
         karma_value = int(user_flair_split[-1])
         if karma_value < 49:
-            CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text=str(user_flair),
-                                                                       flair_template_id=
-                                                                       CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+            CONFIG.fallout76marketplace_1.flair.set(author_name, text=str(user_flair),
+                                                    flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
         elif 50 <= karma_value < 99:
-            CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text=str(user_flair),
-                                                                       flair_template_id=
-                                                                       CONSTANTS.FIFTY_TO_HUNDRED_FLAIR)
+            CONFIG.fallout76marketplace_1.flair.set(author_name, text=str(user_flair),
+                                                    flair_template_id=CONSTANTS.FIFTY_TO_HUNDRED_FLAIR)
         else:
-            CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text=str(user_flair),
-                                                                       flair_template_id=
-                                                                       CONSTANTS.ABOVE_HUNDRED_FLAIR)
+            CONFIG.fallout76marketplace_1.flair.set(author_name, text=str(user_flair),
+                                                    flair_template_id=CONSTANTS.ABOVE_HUNDRED_FLAIR)
 
 
 # Increments karma by 1
@@ -53,8 +49,8 @@ def increment_karma(comment):
     # if the author has no flair
     if p_comment.author_flair_css_class == '' or p_comment.author_flair_css_class is None:
         # sets the flair to one
-        CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text='Karma: 1',
-                                                                   flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+        CONFIG.fallout76marketplace_1.flair.set(author_name, text='Karma: 1',
+                                                flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
     else:
         # Getting the flair and adding the value
         user_flair = p_comment.author_flair_text
@@ -82,8 +78,8 @@ def decrement_karma(comment):
     # if the author has no flair
     if p_comment.author_flair_css_class == '' or p_comment.author_flair_css_class is None:
         # sets the flair to one
-        CONFIG.reddit_1.subreddit(CONFIG.f076mktpl_name).flair.set(author_name, text='Karma: -1',
-                                                                   flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+        CONFIG.fallout76marketplace_1.flair.set(author_name, text='Karma: -1',
+                                                flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
     else:
         # Getting the flair and adding the value
         user_flair = p_comment.author_flair_text

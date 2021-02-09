@@ -57,7 +57,7 @@ class RedditUser:
         except ValueError:
             self.current_karma_level = user_flair_split[-1]
         except AttributeError:
-            self.current_karma_level = comment_or_submission.author_flair_text
+            self.current_karma_level = 0
 
     # Returns true if user has reached the karma reward limit
     def karma_reward_limit_reached(self):

@@ -6,6 +6,7 @@ import time
 import traceback
 from threading import Thread, Lock
 
+import prawcore
 import requests
 import schedule
 
@@ -18,7 +19,7 @@ import user_database
 
 # Send message to discord channel
 def send_message_to_discord(message_param):
-    data = {"content": message_param, "username": CONFIG.username}
+    data = {"content": message_param, "username": CONFIG.bot_name}
     output = requests.post(CONFIG.discord_webhooks, data=json.dumps(data), headers={"Content-Type": "application/json"})
     output.raise_for_status()
 
@@ -28,9 +29,9 @@ def main():
     mutex = Lock()
     failed_attempt = 1
     # Gets 100 historical comments
-    comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+    comment_stream = CONFIG.fallout76marketplace_1.stream.comments(pause_after=-1, skip_existing=True)
     # Gets 100 historical submission
-    submission_stream = CONFIG.fallout76marketplace.stream.submissions(pause_after=-1, skip_existing=True)
+    submission_stream = CONFIG.fallout76marketplace_1.stream.submissions(pause_after=-1, skip_existing=True)
     while True:
         try:
             # Gets comments and if it receives None, it switches to posts
@@ -51,7 +52,9 @@ def main():
 
             # Resetting failed attempt counter in case the code doesn't throw exception
             failed_attempt = 1
-        except Exception:
+        except Exception as exception:
+            if mutex.locked():
+                mutex.release()
             # Sends a message to mods in case of error
             tb = traceback.format_exc()
             try:
@@ -61,13 +64,16 @@ def main():
             except Exception:
                 print("Error sending message to discord")
 
-            # Try again after a pause
-            time.sleep(120 * failed_attempt)
-            failed_attempt = failed_attempt + 1
+            # In case of server error pause for two minutes
+            if isinstance(exception, prawcore.exceptions.ServerError):
+                print("Waiting 2 minutes")
+                # Try again after a pause
+                time.sleep(120 * failed_attempt)
+                failed_attempt = failed_attempt + 1
 
             # Refresh streams
-            comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
-            submission_stream = CONFIG.fallout76marketplace.stream.submissions(pause_after=-1, skip_existing=True)
+            comment_stream = CONFIG.fallout76marketplace_1.stream.comments(pause_after=-1, skip_existing=True)
+            submission_stream = CONFIG.fallout76marketplace_1.stream.submissions(pause_after=-1, skip_existing=True)
 
 
 def manage_data(start_time_p):
