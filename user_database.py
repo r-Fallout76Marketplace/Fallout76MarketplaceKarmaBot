@@ -4,6 +4,15 @@ import CONFIG
 import reddit_user
 
 
+# Gets the comment author name. It if doesn't exist returns [deleted]
+def get_author_name(comment):
+    try:
+        return comment.author.name
+    except AttributeError:
+        return "[deleted]"
+
+
+# Gets the parent comment author name. It if doesn't exist returns [deleted]
 def get_parent_author_name(comment):
     try:
         return comment.parent().author.name
@@ -24,11 +33,11 @@ class UserDatabase:
     def log_karma_command(self, comment):
         # saving the info about the user who gave karma
         # Gets the user from hashtable
-        reddit_user_obj = self.users_dict.get(comment.author.name)
+        reddit_user_obj = self.users_dict.get(get_author_name(comment))
         # If get method returns None, creates a new object and puts it in hashtable
         if reddit_user_obj is None:
             reddit_user_obj = reddit_user.RedditUser(comment.author)
-            self.users_dict.update({comment.author.name: reddit_user_obj})
+            self.users_dict.update({get_author_name(comment): reddit_user_obj})
         reddit_user_obj.increment_awarder_karma()  # Increment how much this user has awarded karma
         # save info about who the user gave karma to
         reddit_user_obj.update_awarder_karma_logs(get_parent_author_name(comment))
@@ -42,7 +51,7 @@ class UserDatabase:
             self.users_dict.update({get_parent_author_name(comment): reddit_user_obj})
         reddit_user_obj.increment_awardee_karma()  # Increment how much this user has received karma
         # save info about who the user received karma from
-        reddit_user_obj.update_awardee_karma_logs(comment.author.name)
+        reddit_user_obj.update_awardee_karma_logs(get_author_name(comment))
         # updates the karma value
         reddit_user_obj.set_current_karma_level(comment.parent())
 
