@@ -15,6 +15,8 @@ import bot_responses
 import flair_functions
 import user_database
 
+run_threads = True
+
 
 # Send message to discord channel
 def send_message_to_discord(message_param):
@@ -31,7 +33,7 @@ def main():
     comment_stream = CONFIG.fallout76marketplace_1.stream.comments(pause_after=-1, skip_existing=True)
     # Gets 100 historical submission
     submission_stream = CONFIG.fallout76marketplace_1.stream.submissions(pause_after=-1, skip_existing=True)
-    while True:
+    while run_threads:
         try:
             # Gets comments and if it receives None, it switches to posts
             for comment in comment_stream:
@@ -129,13 +131,15 @@ def database_manager():
     # Schedule the backing up process to run after every 6 hours
     start_time = time.localtime().tm_hour
     schedule.every(6).hours.do(manage_data, start_time)
-    while True:
+    while run_threads:
         schedule.run_pending()
         time.sleep(1)
 
 
 # Entry point
 if __name__ == '__main__':
+    main_thread = None
+    database_manager_thread = None
     try:
         submission_database_obj = bot_database.BotDatabase()
         user_database_obj = user_database.UserDatabase()
@@ -157,5 +161,8 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Backing up the data...")
         schedule.run_all()
+        run_threads = False
+        main_thread.join()
+        database_manager_thread.join()
         print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
         quit()

@@ -1,6 +1,5 @@
 import prawcore
 
-
 # Replies to comment with text=body
 import CONFIG
 
