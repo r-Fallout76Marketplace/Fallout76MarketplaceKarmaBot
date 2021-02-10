@@ -1,7 +1,7 @@
 # Keywords
-KARMA_PP = r"^\++KARMA|KARMA\++$"
-KARMA_MM = r"^\-+KARMA|KARMA\-+$"
-CLOSE = "^!CLOSE|CLOSE!$"
+KARMA_PP = r"^(\++KARMA|KARMA\++)$"
+KARMA_MM = r"^(\-+KARMA|KARMA\-+)$"
+CLOSE = "^(!CLOSE|CLOSE!)$"
 
 # User Flairs
 ABOVE_HUNDRED_FLAIR = "0467e0de-4a4d-11eb-9453-0e4e6fcf2865"

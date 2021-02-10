@@ -1,5 +1,4 @@
 import json
-import os
 import sqlite3
 import sys
 import time
@@ -113,7 +112,7 @@ def manage_data(start_time_p):
         if time_now == start_time_p:
             user_database_obj.archive_data()
             user_database_obj.erase_data()
-        print("Old data deleted " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        print("Old data deleted " + time.strftime('%I:%M %p %Z'))
     except Exception:
         if mutex.locked():
             mutex.release()
@@ -152,14 +151,11 @@ if __name__ == '__main__':
         # run the threads
         main_thread.start()
         database_manager_thread.start()
-        print("Bot is now live!" + time.strftime('%I:%M %p'))
+        print("Bot is now live!", time.strftime('%I:%M %p %Z'))
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Backing up the data...")
         schedule.run_all()
-        print("Bot has stopped!" + time.strftime('%I:%M %p'))
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit()
+        print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
+        quit()

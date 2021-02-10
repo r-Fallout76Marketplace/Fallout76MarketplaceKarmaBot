@@ -157,7 +157,8 @@ class BotDatabase:
 
     # Process the commands for non mod users
     def process_command_non_mod_user(self, comment, user_database_obj):
-        if re.search(CONSTANTS.KARMA_PP, comment.body, re.IGNORECASE):
+        comment_body = comment.body.strip()
+        if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
             output = self.karma_plus_command_non_mod_users(comment, user_database_obj)
             if output is CONSTANTS.KARMA_CHECKS_PASSED:
                 # increment the karma in flair
@@ -175,10 +176,10 @@ class BotDatabase:
                 # reply to user
                 bot_responses.karma_rewarded_comment(comment)
         # If comment says Karma--
-        elif re.search(CONSTANTS.KARMA_MM, comment.body, re.IGNORECASE):
+        elif re.search(CONSTANTS.KARMA_MM, comment_body, re.IGNORECASE):
             bot_responses.karma_subtract_failed(comment)
         # Close submission
-        elif re.search(CONSTANTS.CLOSE, comment.body, re.IGNORECASE):
+        elif re.search(CONSTANTS.CLOSE, comment_body, re.IGNORECASE):
             conversation_checks.checks_for_close_command(comment)
 
     # Loads the comment to execute commands
@@ -189,18 +190,19 @@ class BotDatabase:
         if not is_mod(comment.author):
             self.process_command_non_mod_user(comment, user_database_obj)
         else:
+            comment_body = comment.body.strip()
             # Mods commands will be executed without checks
             # Increase Karma
-            if re.search(CONSTANTS.KARMA_PP, comment.body, re.IGNORECASE):
+            if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
                 flair_functions.increment_karma(comment)
                 user_database_obj.log_karma_command(comment)
                 bot_responses.karma_rewarded_comment(comment)
             # Decrease Karma
-            elif re.search(CONSTANTS.KARMA_MM, comment.body, re.IGNORECASE):
+            elif re.search(CONSTANTS.KARMA_MM, comment_body, re.IGNORECASE):
                 flair_functions.decrement_karma(comment)
                 bot_responses.karma_subtract_comment(comment)
             # Close Submission
-            elif re.search(CONSTANTS.CLOSE, comment.body, re.IGNORECASE):
+            elif re.search(CONSTANTS.CLOSE, comment_body, re.IGNORECASE):
                 flair_functions.close_post_trade(comment)
                 time_expired = False
                 bot_responses.close_submission_comment(comment.submission, time_expired)
