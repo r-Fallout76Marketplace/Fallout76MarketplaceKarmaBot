@@ -65,6 +65,8 @@ class RedditUser:
             return True
         elif self.current_karma_level < 100 and self.awardee_karma >= 15:
             return True
+        elif self.current_karma_level >= 100 and self.awardee_karma >= 50:
+            return True
         else:
             return False
 

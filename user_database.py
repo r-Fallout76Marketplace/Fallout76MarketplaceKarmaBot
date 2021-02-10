@@ -64,8 +64,10 @@ class UserDatabase:
 
     def archive_data(self):
         self_text = ""
-        for key, value in self.users_dict.items():
-            self_text += str(value)
+        # sort the users by how much karma they gave
+        sorted_list = sorted(self.users_dict.items(), key=lambda obj: obj[1].awarder_karma, reverse=True)
+        for item in sorted_list:
+            self_text += str(item[1])
             self_text += "***\n\n"
         today = datetime.today().strftime('%Y/%m/%d') + " karma logs"
         CONFIG.legacy76.submit(title=today, selftext=self_text)
