@@ -2,6 +2,9 @@ import prawcore
 
 
 # Replies to comment with text=body
+import CONFIG
+
+
 def reply(comment_or_submission, body):
     # Add disclaimer text
     response = body + "\n\n ^(This action was performed by a bot, please contact the mods for any questions. "
@@ -61,10 +64,13 @@ def already_rewarded_comment(comment, permalink):
 # If the users is already awarded in a submission
 def karma_reward_limit_reached(comment, karma_logs):
     comment_body = "Hi " + comment.author.name + "! You have reached the karma reward limit. You will not be able to "
-    comment_body += "reward karma until midnight tomorrow. Here is your today's history of rewarding karma\n\n"
-    for i in range(karma_logs):
-        comment_body += "[Awarded to " + karma_logs[3] + str(i) + "](https://www.reddit.com/" + karma_logs[5] + ")\n\n"
+    comment_body += "reward karma until next midnight. Thank you for your patience."
     reply(comment, comment_body)
+    title = comment.author.name + " have reached their daily awarder karma limit"
+    self_text = ""
+    for i in range(karma_logs):
+        self_text += "[Awarded to " + karma_logs[3] + str(i) + "](https://www.reddit.com/" + karma_logs[5] + ")\n\n"
+    CONFIG.legacy76.submit(title=title, selftext=self_text)
 
 
 # Failed to give parent comment karma
