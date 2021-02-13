@@ -176,7 +176,7 @@ class BotDatabase:
             table += "|{}|{}|{}|{}|https://www.reddit.com{}|\n".format(row[5], row[3], row[4], row[2], row[6])
         title = author_name + datetime.today().strftime(' %Y/%m/%d') + " karma logs"
         self_text = table
-        submission = CONFIG.legacy76.submit(title=title, selftext=self_text)
+        submission = CONFIG.legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.KARMA_LOGS_PULL_REQUEST)
         comment.author.message(title, "https://www.reddit.com{}".format(submission.permalink))
 
     # Loads the comment to execute commands

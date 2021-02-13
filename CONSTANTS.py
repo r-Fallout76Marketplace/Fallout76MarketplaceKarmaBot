@@ -16,6 +16,11 @@ PC_ID = "3cf157c0-a456-11ea-9d4b-0ef6b0560e33"
 XBOX_ID = "4d9cf30e-a456-11ea-935d-0e189d0ec7e7"
 PS_ID = "76ffc186-a456-11ea-9534-0e285694494d"
 
+# Legacy 76 Post Flairs
+KARMA_LOGS_PULL_REQUEST = "0d24cb6a-6e47-11eb-9d46-0edf51a7cc19"
+AWARDER_KARMA_LIMIT_REACHED = "f3670e54-6e46-11eb-9b9a-0ec06ae1e6f3"
+DAILY_KARMA_LOGS = "9c28c7c2-6e46-11eb-83d5-0e5c4a6b3c1f"
+
 # Constants for checking conversation
 # Indicate command was success
 # values are not important

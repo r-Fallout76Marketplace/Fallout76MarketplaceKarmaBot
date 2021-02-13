@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import CONFIG
+import CONSTANTS
 import reddit_user
 
 
@@ -77,7 +78,7 @@ class UserDatabase:
             self_text += str(item[1])
             self_text += "***\n\n"
         today = datetime.today().strftime('%Y/%m/%d') + " karma logs"
-        CONFIG.legacy76.submit(title=today, selftext=self_text)
+        CONFIG.legacy76.submit(title=today, selftext=self_text, flair_id=CONSTANTS.DAILY_KARMA_LOGS)
 
     # Deletes all the data
     def erase_data(self):

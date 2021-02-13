@@ -2,6 +2,7 @@ import prawcore
 
 # Replies to comment with text=body
 import CONFIG
+import CONSTANTS
 
 
 def reply(comment_or_submission, body):
@@ -78,7 +79,7 @@ def karma_reward_limit_reached(comment, karma_logs):
     self_text = ""
     for i in range(karma_logs):
         self_text += "[Awarded to " + karma_logs[3] + str(i) + "](https://www.reddit.com/" + karma_logs[5] + ")\n\n"
-    CONFIG.legacy76.submit(title=title, selftext=self_text)
+    CONFIG.legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.AWARDER_KARMA_LIMIT_REACHED)
 
 
 # Failed to give parent comment karma
