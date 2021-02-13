@@ -14,7 +14,7 @@ def reply(comment_or_submission, body):
         new_comment.mod.distinguish(how="yes")
         new_comment.mod.lock()
     except prawcore.exceptions.Forbidden:
-        pass
+        raise prawcore.exceptions.Forbidden("Could not distinguish/lock comment")
 
 
 # Comment reply when karma is given successfully
@@ -63,7 +63,8 @@ def already_rewarded_comment(comment, permalink):
 # If the users is already awarded in a submission
 def karma_reward_limit_reached(comment, karma_logs):
     comment_body = "Hi " + comment.author.name + "! You have reached the karma reward limit. You will not be able to "
-    comment_body += "reward karma until next midnight. Thank you for your patience."
+    comment_body += "reward karma until next midnight EST. You can contact mods and they can give karma on your behalf "
+    comment_body += "Thank you for your patience!"
     reply(comment, comment_body)
     title = comment.author.name + " have reached their daily awarder karma limit"
     self_text = ""
@@ -96,10 +97,8 @@ def karma_subtract_failed(comment):
 
 
 # Close the submission comment
-def close_submission_comment(submission, time_expired):
+def close_submission_comment(submission):
     comment_body = "The submission has been closed and comments have been locked. "
-    if time_expired:
-        comment_body += "**All trading submission gets locked automatically after 1 week.** "
     comment_body += "Please contact mods, if you want to open the submission."
     reply(submission, comment_body)
 
@@ -110,13 +109,4 @@ def close_submission_failed(comment, is_trading_post):
         comment_body = "The submission can only be close by OP or the mods. Please report post if it is breaking rules."
     else:
         comment_body = "This type of submission cannot be closed. Please refer to wiki page for more information."
-    reply(comment, comment_body)
-
-
-# If submission flair was changed or the submission was not recorded
-def submission_flair_changed(comment):
-    comment_body = "The bot could not reward karma either because the submission flair was changed to trading flair "
-    comment_body += "from non trading flair or the submission was posted when the bot was down. In any case, please "
-    comment_body += "[contact mods](https://www.reddit.com/message/compose?to=/r/Fallout76Marketplace&subject=Could" \
-                    "%20not%20reward%20karma&message=put%20submission%20link%20here) "
     reply(comment, comment_body)

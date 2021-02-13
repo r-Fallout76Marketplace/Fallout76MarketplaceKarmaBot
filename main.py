@@ -1,6 +1,5 @@
 import json
 import sqlite3
-import sys
 import time
 import traceback
 from threading import Thread, Lock
@@ -11,8 +10,6 @@ import schedule
 
 import CONFIG
 import bot_database
-import bot_responses
-import flair_functions
 import user_database
 
 run_threads = True
@@ -30,9 +27,7 @@ def main():
     mutex = Lock()
     failed_attempt = 1
     # Gets 100 historical comments
-    comment_stream = CONFIG.fallout76marketplace_1.stream.comments(pause_after=-1, skip_existing=True)
-    # Gets 100 historical submission
-    submission_stream = CONFIG.fallout76marketplace_1.stream.submissions(pause_after=-1, skip_existing=True)
+    comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while run_threads:
         try:
             # Gets comments and if it receives None, it switches to posts
@@ -40,15 +35,7 @@ def main():
                 if comment is None:
                     break
                 mutex.acquire()
-                submission_database_obj.load_comment(comment, user_database_obj)
-                mutex.release()
-
-            # Gets posts and if it receives None, it switches to comments
-            for submission in submission_stream:
-                if submission is None:
-                    break
-                mutex.acquire()
-                submission_database_obj.load_submission(submission)
+                comment_database_obj.load_comment(comment, user_database_obj)
                 mutex.release()
 
             # Resetting failed attempt counter in case the code doesn't throw exception
@@ -62,7 +49,7 @@ def main():
                 send_message_to_discord(tb)
                 print(tb)
                 # Refreshing Streams
-            except Exception:
+            except requests.exceptions.HTTPError:
                 print("Error sending message to discord")
 
             # In case of server error pause for two minutes
@@ -73,64 +60,45 @@ def main():
                 failed_attempt = failed_attempt + 1
 
             # Refresh streams
-            comment_stream = CONFIG.fallout76marketplace_1.stream.comments(pause_after=-1, skip_existing=True)
-            submission_stream = CONFIG.fallout76marketplace_1.stream.submissions(pause_after=-1, skip_existing=True)
+            comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
 
-def manage_data(start_time_p):
+def manage_data():
     mutex = Lock()
     try:
-        seconds_in_week = 604800
-        time_now = time.time()
-        unix_time_week_ago = time_now - seconds_in_week
-        submission_db_conn = sqlite3.connect('submission_logs.db', check_same_thread=False)
-        submission_logs_db_cursor = submission_db_conn.cursor()
+        # Calculate what was unix time 6 months ago
+        seconds_in_six_months = 180 * 60 * 60 * 24
+        unix_time_now = time.time()
+        unix_time_six_months_ago = unix_time_now - seconds_in_six_months
         karma_logs_db_conn = sqlite3.connect('karma_logs.db', check_same_thread=False)
         karma_logs_db_cursor = karma_logs_db_conn.cursor()
 
-        # Locking all submission the submission_logs_db_cursor
-        submission_logs_db_cursor.execute(
-            "SELECT * FROM submissions WHERE time_created_utc <= '{}'".format(unix_time_week_ago))
-        table = submission_logs_db_cursor.fetchall()
-        for row in table:
-            submission = CONFIG.reddit_2.submission(row[0])
-            flair_functions.close_post_trade(submission)
-            bot_responses.close_submission_comment(submission, time_expired=True)
-
         mutex.acquire()
-        submission_logs_db_cursor.execute(
-            "DELETE FROM submissions WHERE time_created_utc <= '{}'".format(unix_time_week_ago))
-        # commit
-        submission_db_conn.commit()
-
-        # delete the record of comments that are of deleted submissions
+        # delete the record of comments that are of older than 6 months
         karma_logs_db_cursor.execute(
-            "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_week_ago))
+            "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_six_months_ago))
         # commit
         karma_logs_db_conn.commit()
         mutex.release()
 
-        time_now = time.localtime().tm_hour
-        if time_now == start_time_p:
-            user_database_obj.archive_data()
-            user_database_obj.erase_data()
+        user_database_obj.archive_data()
+        user_database_obj.erase_data()
         print("Old data deleted " + time.strftime('%I:%M %p %Z'))
-    except Exception:
+    except Exception as exception:
         if mutex.locked():
             mutex.release()
         tb = traceback.format_exc()
-        print(tb)
+        print(exception)
         try:
             send_message_to_discord(tb)
-        except Exception:
+        except requests.exceptions.HTTPError:
             print("Error sending message to discord")
 
 
 # The secondary thread that runs to manage the database/memory and delete old items
 def database_manager():
-    # Schedule the backing up process to run after every 6 hours
-    start_time = time.localtime().tm_hour
-    schedule.every(6).hours.do(manage_data, start_time)
+    # Run schedule Everyday at 12 midnight
+    schedule.every().day.at("00:00").do(manage_data)
     while run_threads:
         schedule.run_pending()
         time.sleep(1)
@@ -141,14 +109,10 @@ if __name__ == '__main__':
     main_thread = None
     database_manager_thread = None
     try:
-        submission_database_obj = bot_database.BotDatabase()
+        comment_database_obj = bot_database.BotDatabase()
         user_database_obj = user_database.UserDatabase()
-        # Check if the command line argument is provided
-        # If the bot was down, loads all the submissions that were posted during downtime
-        if len(sys.argv) >= 2:
-            downtime_in_seconds = int(sys.argv[1]) * 3600
-            submission_database_obj.load_submissions_from_downtime(downtime_in_seconds)
-        submission_database_obj.load_data_from_karma_logs(user_database_obj)
+        # logs karma logs of one day
+        comment_database_obj.load_data_from_karma_logs(user_database_obj)
         # Create threads
         main_thread = Thread(target=main)
         database_manager_thread = Thread(target=database_manager)

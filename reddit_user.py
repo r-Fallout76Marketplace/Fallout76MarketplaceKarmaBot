@@ -1,4 +1,15 @@
+import json
+
+import requests
+
 import CONFIG
+
+
+# Send message to discord channel
+def send_message_to_discord(message_param):
+    data = {"content": message_param, "username": CONFIG.bot_name}
+    output = requests.post(CONFIG.mod_channel, data=json.dumps(data), headers={"Content-Type": "application/json"})
+    output.raise_for_status()
 
 
 # Class RedditUser
@@ -20,10 +31,18 @@ class RedditUser:
         self.awarder_karma_logs = {}
         self.awardee_karma = 0
         self.awardee_karma_logs = {}
+        self.awarder_limit_alert_sent = 0
+        self.awardee_limit_alert_sent = 0
 
     # increments the karma given
     def increment_awarder_karma(self):
         self.awarder_karma = self.awarder_karma + 1
+        if self.awarder_karma > 20 and self.awarder_limit_alert_sent != 1:
+            try:
+                send_message_to_discord(self.user_name + " has given 20+ karma today")
+                self.awarder_limit_alert_sent = 1
+            except requests.exceptions.HTTPError:
+                pass
 
     # Stores the information about who this user awarded the karma
     def update_awarder_karma_logs(self, user_name):
@@ -37,6 +56,12 @@ class RedditUser:
     # increments the karma received
     def increment_awardee_karma(self):
         self.awardee_karma = self.awardee_karma + 1
+        if self.awardee_karma > 20 and self.awardee_limit_alert_sent != 1:
+            try:
+                send_message_to_discord(self.user_name + " has received 20+ karma today")
+                self.awardee_limit_alert_sent = 1
+            except requests.exceptions.HTTPError:
+                pass
 
     # Stores the information about who this user got karma from
     def update_awardee_karma_logs(self, user_name):
@@ -58,17 +83,6 @@ class RedditUser:
             self.current_karma_level = user_flair_split[-1]
         except AttributeError:
             self.current_karma_level = 0
-
-    # Returns true if user has reached the karma reward limit
-    def karma_reward_limit_reached(self):
-        if self.current_karma_level < 50 and self.awardee_karma >= 10:
-            return True
-        elif self.current_karma_level < 100 and self.awardee_karma >= 15:
-            return True
-        elif self.current_karma_level >= 100 and self.awardee_karma >= 50:
-            return True
-        else:
-            return False
 
     # Overrides the str method
     def __str__(self):

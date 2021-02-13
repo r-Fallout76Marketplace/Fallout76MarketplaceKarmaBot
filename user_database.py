@@ -55,12 +55,19 @@ class UserDatabase:
         # updates the karma value
         reddit_user_obj.set_current_karma_level(comment.parent())
 
-    def karma_limits_reached(self, username):
+    def awarder_karma_limit_reached(self, username):
         reddit_user_obj = self.users_dict.get(username)
         if reddit_user_obj is None:
             return False
         else:
-            return reddit_user_obj.karma_reward_limit_reached()
+            if reddit_user_obj.current_karma_level < 50 and reddit_user_obj.awarder_karma >= 10:
+                return True
+            elif reddit_user_obj.current_karma_level < 100 and reddit_user_obj.awarder_karma >= 15:
+                return True
+            elif reddit_user_obj.current_karma_level >= 100 and reddit_user_obj.awarder_karma >= 50:
+                return True
+            else:
+                return False
 
     def archive_data(self):
         self_text = ""

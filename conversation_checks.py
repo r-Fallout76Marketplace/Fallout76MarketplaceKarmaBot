@@ -1,4 +1,3 @@
-import copy
 import re
 
 import praw
@@ -34,7 +33,7 @@ def checks_for_close_command(comment):
         # You can close trading posts only
         if flair_checks(comment):
             flair_functions.close_post_trade(comment)
-            bot_responses.close_submission_comment(comment.submission, time_expired=False)
+            bot_responses.close_submission_comment(comment.submission)
         else:
             # If post isn't trading post
             bot_responses.close_submission_failed(comment, False)
@@ -50,14 +49,17 @@ def checks_for_karma_command(comment):
         return CONSTANTS.CANNOT_REWARD_YOURSELF
     comment_thread = []  # Stores all comments in a array
     users_involved = set()  # Stores all the users involved
-    temp_comment = copy.deepcopy(comment)
-    while not temp_comment.is_root:
-        comment_thread.append(temp_comment)
-        users_involved.add(temp_comment.author)
-        temp_comment = temp_comment.parent()
-    # The top level comment does get stored so adds last comment
-    comment_thread.append(temp_comment)
-    users_involved.add(temp_comment.author)
+    count = 0
+    comments_look_up_limit = 2
+    while not comment.is_root and count < comments_look_up_limit:
+        comment_thread.append(comment)
+        users_involved.add(comment.author)
+        comment = comment.parent()
+        count = count + 1
+
+    # The last comment does get stored so adds last comment
+    comment_thread.append(comment)
+    users_involved.add(comment.author)
 
     # If there are more than two people involved
     if len(users_involved) > 2:
