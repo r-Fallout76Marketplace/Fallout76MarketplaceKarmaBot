@@ -69,6 +69,7 @@ class BotDatabase:
         self.karma_logs_db_cursor.execute(
             "SELECT * FROM comments WHERE time_created_utc >= '{}'".format(unix_time_at_previous_midnight))
         table = self.karma_logs_db_cursor.fetchall()
+        print("Loading " + str(len(table)) + " comments....")
         for row in table:
             comment = CONFIG.reddit_2.comment(id=row[0])
             user_database_obj.log_karma_command(comment)
