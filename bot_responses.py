@@ -43,13 +43,21 @@ def cannot_reward_yourself_comment(comment):
 def more_than_two_users_involved(comment):
     comment_body = "Hi " + comment.author.name + " There are more than two users involved in the conversation. "
     comment_body += "Please separate out your conversations so the bot can tell which user you are trading with. "
+    comment_body += "If you are not sure you can look at an example of [good karma exchange](" \
+                    "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/vault-tectradingcobot" \
+                    "#wiki_when_and_how_do_i_give_trading_karma.3F). You need to have consecutive 3 back to back " \
+                    "comments involving two users only to give karma. "
     reply(comment, comment_body)
 
 
 # If conversation is not long enough
 def conversation_not_long_enough(comment):
     comment_body = "Hi " + comment.author.name + " There is not enough evidence that the conversation occurred.  "
-    comment_body += "Please negotiate and exchange gamertags in comments rather than in chats/messages. "
+    comment_body += "Please negotiate and exchange gamertags in comments rather than in chats/messages. If you are "
+    comment_body += "not sure you can look at an example of [good karma exchange](" \
+                    "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/vault-tectradingcobot" \
+                    "#wiki_when_and_how_do_i_give_trading_karma.3F). This is the minimum conversation we expect from " \
+                    "users before they can give karma."
     reply(comment, comment_body)
 
 
