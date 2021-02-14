@@ -5,6 +5,7 @@ import praw
 import CONSTANTS
 import bot_responses
 import flair_functions
+from copy import deepcopy
 
 
 # Checks if submission is eligible for trading
@@ -51,15 +52,16 @@ def checks_for_karma_command(comment):
     users_involved = set()  # Stores all the users involved
     count = 0
     comments_look_up_limit = 2
-    while not comment.is_root and count < comments_look_up_limit:
-        comment_thread.append(comment)
-        users_involved.add(comment.author)
-        comment = comment.parent()
+    temp_comment = deepcopy(comment)
+    while not temp_comment.is_root and count < comments_look_up_limit:
+        comment_thread.append(temp_comment)
+        users_involved.add(temp_comment.author)
+        temp_comment = temp_comment.parent()
         count = count + 1
 
     # The last comment does get stored so adds last comment
-    comment_thread.append(comment)
-    users_involved.add(comment.author)
+    comment_thread.append(temp_comment)
+    users_involved.add(temp_comment.author)
 
     # If there are more than two people involved
     if len(users_involved) > 2:
