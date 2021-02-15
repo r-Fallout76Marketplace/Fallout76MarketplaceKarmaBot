@@ -117,11 +117,6 @@ class BotDatabase:
         if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
             output = self.karma_plus_command_non_mod_users(comment, user_database_obj)
             if output is CONSTANTS.KARMA_CHECKS_PASSED:
-                # increment the karma in flair
-                flair_functions.increment_karma(comment)
-                # log comment in list
-                user_database_obj.log_karma_command(comment)
-                # store comment in karma logs database
                 try:
                     self.karma_logs_db_cursor.execute("""INSERT INTO comments VALUES ('{}', '{}', '{}', '{}', 
                                                         '{}', '{}', '{}')""".format(comment.id, comment.submission.id,
@@ -132,7 +127,12 @@ class BotDatabase:
                                                                                     comment.permalink))
                     self.karma_logs_db_conn.commit()
                 except sqlite3.IntegrityError:
-                    raise sqlite3.IntegrityError("Duplicate comment was received!")
+                    raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
+                # increment the karma in flair
+                flair_functions.increment_karma(comment)
+                # log comment in list
+                user_database_obj.log_karma_command(comment)
+                # store comment in karma logs database
                 # reply to user
                 bot_responses.karma_rewarded_comment(comment)
         # If comment says Karma--
@@ -175,7 +175,7 @@ class BotDatabase:
             row[2] = time.strftime("%D", time.localtime(int(row[2])))
             row[5] = time.strftime("%D", time.localtime(int(row[5])))
             table += "|{}|{}|{}|{}|https://www.reddit.com{}|\n".format(row[5], row[3], row[4], row[2], row[6])
-        title = author_name + datetime.today().strftime(' %Y/%m/%d') + " karma logs"
+        title = "{} {} {} days karma logs".format(author_name, datetime.today().strftime(' %Y/%m/%d'), days)
         self_text = table
         submission = CONFIG.legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.KARMA_LOGS_PULL_REQUEST)
         comment.author.message(title, "https://www.reddit.com{}".format(submission.permalink))
