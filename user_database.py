@@ -79,7 +79,7 @@ class UserDatabase:
         for item in sorted_list:
             self_text += str(item[1])
             total_awarder_karma += item[1].awarder_karma
-            total_awardee_karma += item[1].awadeee_karma
+            total_awardee_karma += item[1].awardee_karma
             self_text += "***\n\n"
         self_text = "Today {} users gave and received karma. A total of {} karma was given and {} karma was " \
                     "received\n***\n\n".format(len(sorted_list), total_awarder_karma, total_awardee_karma) + self_text
