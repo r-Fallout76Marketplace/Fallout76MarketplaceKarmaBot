@@ -1,11 +1,11 @@
 import re
+from copy import deepcopy
 
 import praw
 
 import CONSTANTS
 import bot_responses
 import flair_functions
-from copy import deepcopy
 
 
 # Checks if submission is eligible for trading

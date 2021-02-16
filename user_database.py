@@ -73,16 +73,14 @@ class UserDatabase:
     def archive_data(self):
         self_text = ""
         total_awarder_karma = 0
-        total_awardee_karma = 0
         # sort the users by how much karma they gave
         sorted_list = sorted(self.users_dict.items(), key=lambda obj: obj[1].awarder_karma, reverse=True)
         for item in sorted_list:
             self_text += str(item[1])
             total_awarder_karma += item[1].awarder_karma
-            total_awardee_karma += item[1].awardee_karma
             self_text += "***\n\n"
-        self_text = "Today {} users gave and received karma. A total of {} karma was given and {} karma was " \
-                    "received\n***\n\n".format(len(sorted_list), total_awarder_karma, total_awardee_karma) + self_text
+        self_text = "Today {} users gave and received karma. A total of {} karma was given and received\n***\n\n".format(
+            len(sorted_list), total_awarder_karma) + self_text
         today = datetime.today().strftime('%Y/%m/%d') + " karma logs"
         CONFIG.legacy76.submit(title=today, selftext=self_text, flair_id=CONSTANTS.DAILY_KARMA_LOGS)
 
