@@ -193,6 +193,17 @@ class BotDatabase:
             # Increase Karma
             if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
                 flair_functions.increment_karma(comment)
+                try:
+                    self.karma_logs_db_cursor.execute("""INSERT INTO comments VALUES ('{}', '{}', '{}', '{}', 
+                                                        '{}', '{}', '{}')""".format(comment.id, comment.submission.id,
+                                                                                    comment.submission.created_utc,
+                                                                                    comment.author.name,
+                                                                                    comment.parent().author.name,
+                                                                                    comment.created_utc,
+                                                                                    comment.permalink))
+                    self.karma_logs_db_conn.commit()
+                except sqlite3.IntegrityError:
+                    raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
                 user_database_obj.log_karma_command(comment)
                 bot_responses.karma_rewarded_comment(comment)
             # Decrease Karma
