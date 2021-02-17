@@ -113,7 +113,7 @@ class BotDatabase:
 
     # Process the commands for non mod users
     def process_command_non_mod_user(self, comment, user_database_obj):
-        comment_body = comment.body.strip()
+        comment_body = comment.body.strip().replace("\\", "")
         if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
             output = self.karma_plus_command_non_mod_users(comment, user_database_obj)
             if output is CONSTANTS.KARMA_CHECKS_PASSED:
@@ -144,7 +144,7 @@ class BotDatabase:
 
     # Posts the karma logs of a user on legacy76 subreddit
     def get_karma_logs(self, comment, comment_body):
-        comment_body_split = comment_body.replace("\\", "").split()
+        comment_body_split = comment_body.split()
         author_name = comment_body_split[1]
         days = 1
         if comment_body_split[-1].isdigit():
@@ -188,7 +188,7 @@ class BotDatabase:
         if not is_mod(comment.author):
             self.process_command_non_mod_user(comment, user_database_obj)
         else:
-            comment_body = comment.body.strip()
+            comment_body = comment.body.strip().replace("\\", "")
             # Mods commands will be executed without checks
             # Increase Karma
             if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
