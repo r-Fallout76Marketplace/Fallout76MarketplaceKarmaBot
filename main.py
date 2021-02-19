@@ -27,13 +27,11 @@ def main():
     mutex = Lock()
     failed_attempt = 1
     # Gets 100 historical comments
-    comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+    comment_stream = CONFIG.fallout76marketplace.stream.comments(skip_existing=True)
     while run_threads:
         try:
-            # Gets comments and if it receives None, it switches to posts
+            # Gets a continuous stream of comments
             for comment in comment_stream:
-                if comment is None:
-                    break
                 mutex.acquire()
                 comment_database_obj.load_comment(comment, user_database_obj)
                 mutex.release()
@@ -60,7 +58,7 @@ def main():
                 failed_attempt = failed_attempt + 1
 
             # Refresh streams
-            comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+            comment_stream = CONFIG.fallout76marketplace.stream.comments(skip_existing=True)
 
 
 def manage_data():

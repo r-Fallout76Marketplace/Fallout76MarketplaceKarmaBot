@@ -42,7 +42,7 @@ def cannot_reward_yourself_comment(comment):
 
 # If more than two users are involved in the conversation
 def more_than_two_users_involved(comment):
-    comment_body = "Hi " + comment.author.name + " There are more than two users involved in the conversation. "
+    comment_body = "Hi " + comment.author.name + "! There are more than two users involved in the conversation. "
     comment_body += "Please separate out your conversations so the bot can tell which user you are trading with. "
     comment_body += "If you are not sure you can look at an example of [good karma exchange](" \
                     "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/trading_karma). " \
@@ -52,11 +52,19 @@ def more_than_two_users_involved(comment):
 
 # If conversation is not long enough
 def conversation_not_long_enough(comment):
-    comment_body = "Hi " + comment.author.name + " There is not enough evidence that the conversation occurred.  "
+    comment_body = "Hi " + comment.author.name + "! There is not enough evidence that the conversation occurred.  "
     comment_body += "Please negotiate and exchange gamertags in comments rather than in chats/messages. If you are "
     comment_body += "not sure you can look at an example of [good karma exchange](" \
                     "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/trading_karma). " \
                     "This is the minimum conversation we expect from users before they can give karma."
+    reply(comment, comment_body)
+
+
+# If the comment itself is removed or the submission is deleted/removed
+def deleted_or_removed(comment):
+    comment_body = "Hi " + comment.author.name + "! It seems that either your comment has been removed by Automoderator"
+    comment_body += " or most probably OP has deleted their submission or has been removed by a Moderator. We don't "
+    comment_body += " allow users to trade karma on deleted/removed submissions. Thank you for your understanding. "
     reply(comment, comment_body)
 
 

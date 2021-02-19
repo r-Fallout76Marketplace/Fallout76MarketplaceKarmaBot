@@ -51,17 +51,31 @@ def checks_for_karma_command(comment):
     comment_thread = []  # Stores all comments in a array
     users_involved = set()  # Stores all the users involved
     count = 0
-    comments_look_up_limit = 2
+    comments_look_up_limit = 1
     temp_comment = deepcopy(comment)
-    while not temp_comment.is_root and count < comments_look_up_limit:
+    while not temp_comment.is_root and count <= comments_look_up_limit:
         comment_thread.append(temp_comment)
         users_involved.add(temp_comment.author)
         temp_comment = temp_comment.parent()
         count = count + 1
 
-    # The last comment does get stored so adds last comment
-    comment_thread.append(temp_comment)
-    users_involved.add(temp_comment.author)
+    if temp_comment.is_root:
+        # The last comment does get stored so adds last comment
+        comment_thread.append(temp_comment)
+        users_involved.add(temp_comment.author)
+
+    comment_thread.append(temp_comment.submission)
+    users_involved.add(temp_comment.submission.author)
+
+    # Remove mods and couriers from the users involved
+    for user in users_involved:
+        if flair_functions.is_mod_or_courier(user):
+            users_involved.remove(user)
+
+    # If comment itself or the submission has been removed/deleted
+    if comment.removed or comment_thread[-1].removed or comment_thread[-1].author is None:
+        bot_responses.deleted_or_removed(comment)
+        return CONSTANTS.DELETED_OR_REMOVED
 
     # If there are more than two people involved
     if len(users_involved) > 2:

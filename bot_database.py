@@ -82,6 +82,11 @@ class BotDatabase:
             bot_responses.karma_trading_posts_only(comment)
             return CONSTANTS.INCORRECT_SUBMISSION_TYPE
 
+        # User tries to give karma to deleted submission
+        if comment.parent().author is None:
+            bot_responses.deleted_or_removed(comment)
+            return CONSTANTS.DELETED_OR_REMOVED
+
             # Checks in karma logs to see if user has already rewarded the user
         self.karma_logs_db_cursor.execute("""SELECT * FROM comments WHERE 
                                                 submission_id='{}'
