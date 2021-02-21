@@ -38,7 +38,7 @@ def main():
 
             # Resetting failed attempt counter in case the code doesn't throw exception
             failed_attempt = 1
-        except Exception as exception:
+        except Exception as main_loop_exception:
             if mutex.locked():
                 mutex.release()
             # Sends a message to mods in case of error
@@ -47,11 +47,11 @@ def main():
                 send_message_to_discord(tb)
                 print(tb)
                 # Refreshing Streams
-            except Exception as exception:
-                print("Error sending message to discord", exception)
+            except Exception as discord_exception:
+                print("Error sending message to discord", str(discord_exception))
 
             # In case of server error pause for two minutes
-            if isinstance(exception, prawcore.exceptions.ServerError):
+            if isinstance(main_loop_exception, prawcore.exceptions.ServerError):
                 print("Waiting 2 minutes")
                 # Try again after a pause
                 time.sleep(120 * failed_attempt)
@@ -82,15 +82,15 @@ def manage_data():
         user_database_obj.archive_data()
         user_database_obj.erase_data()
         print("Old data deleted " + time.strftime('%I:%M %p %Z'))
-    except Exception as exception:
+    except Exception as main_loop_exception:
         if mutex.locked():
             mutex.release()
         tb = traceback.format_exc()
-        print(exception)
+        print(main_loop_exception)
         try:
             send_message_to_discord(tb)
-        except requests.exceptions.HTTPError:
-            print("Error sending message to discord")
+        except Exception as discord_exception:
+            print("Error sending message to discord", str(discord_exception))
 
 
 # The secondary thread that runs to manage the database/memory and delete old items
