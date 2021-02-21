@@ -47,8 +47,8 @@ def main():
                 send_message_to_discord(tb)
                 print(tb)
                 # Refreshing Streams
-            except requests.exceptions.HTTPError:
-                print("Error sending message to discord")
+            except Exception as exception:
+                print("Error sending message to discord", exception)
 
             # In case of server error pause for two minutes
             if isinstance(exception, prawcore.exceptions.ServerError):

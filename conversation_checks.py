@@ -68,7 +68,7 @@ def checks_for_karma_command(comment):
     users_involved.add(temp_comment.submission.author)
 
     # Remove mods and couriers from the users involved
-    for user in users_involved:
+    for user in users_involved.copy():
         if flair_functions.is_mod_or_courier(user):
             users_involved.remove(user)
 
