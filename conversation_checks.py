@@ -50,22 +50,17 @@ def checks_for_karma_command(comment):
         return CONSTANTS.CANNOT_REWARD_YOURSELF
     comment_thread = []  # Stores all comments in a array
     users_involved = set()  # Stores all the users involved
-    count = 0
-    comments_look_up_limit = 1
-    temp_comment = deepcopy(comment)
-    while not temp_comment.is_root and count <= comments_look_up_limit:
-        comment_thread.append(temp_comment)
-        users_involved.add(temp_comment.author)
-        temp_comment = temp_comment.parent()
-        count = count + 1
+    comment_thread.append(comment)
+    users_involved.add(comment.author)
 
-    if temp_comment.is_root:
-        # The last comment does get stored so adds last comment
-        comment_thread.append(temp_comment)
-        users_involved.add(temp_comment.author)
+    # If the karma comment is not root meaning it ha a parent comment
+    if not comment.is_root:
+        parent_comment = comment.parent()
+        comment_thread.append(parent_comment)
+        users_involved.add(parent_comment.author)
 
-    comment_thread.append(temp_comment.submission)
-    users_involved.add(temp_comment.submission.author)
+    comment_thread.append(comment.submission)
+    users_involved.add(comment.submission.author)
 
     # Remove mods and couriers from the users involved
     for user in users_involved.copy():
