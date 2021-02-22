@@ -7,6 +7,8 @@ import bot_responses
 
 # Checks if the author is mod
 def is_mod_or_courier(author):
+    if author is None:
+        return False
     moderators_list = CONFIG.fallout76marketplace.moderator()
     courier_list = ['_juanv_', 'techybuffalo_279', 'wisck', 'babbbygirllchelss']
     if author in moderators_list:
