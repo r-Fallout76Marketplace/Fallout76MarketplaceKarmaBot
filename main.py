@@ -24,6 +24,7 @@ def send_message_to_discord(message_param):
 
 # main thread where the bot will run
 def main():
+    global run_threads
     mutex = Lock()
     failed_attempt = 1
     # Gets 100 historical comments
@@ -95,6 +96,7 @@ def manage_data():
 
 # The secondary thread that runs to manage the database/memory and delete old items
 def database_manager():
+    global run_threads
     # Run schedule Everyday at 12 midnight
     schedule.every().day.at("00:00").do(manage_data)
     while run_threads:
@@ -104,6 +106,7 @@ def database_manager():
 
 # Entry point
 if __name__ == '__main__':
+    global run_threads
     main_thread = None
     database_manager_thread = None
     try:
@@ -119,6 +122,7 @@ if __name__ == '__main__':
         database_manager_thread.start()
         print("Bot is now live!", time.strftime('%I:%M %p %Z'))
         while True:
+            print("Main...")
             time.sleep(1)
     except KeyboardInterrupt:
         print("Backing up the data...")
