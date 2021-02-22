@@ -24,15 +24,16 @@ def send_message_to_discord(message_param):
 
 # main thread where the bot will run
 def main():
-    global run_threads
     mutex = Lock()
     failed_attempt = 1
     # Gets 100 historical comments
-    comment_stream = CONFIG.fallout76marketplace.stream.comments(skip_existing=True)
+    comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while run_threads:
         try:
             # Gets a continuous stream of comments
             for comment in comment_stream:
+                if comment is None:
+                    break
                 mutex.acquire()
                 comment_database_obj.load_comment(comment, user_database_obj)
                 mutex.release()
@@ -59,7 +60,7 @@ def main():
                 failed_attempt = failed_attempt + 1
 
             # Refresh streams
-            comment_stream = CONFIG.fallout76marketplace.stream.comments(skip_existing=True)
+            comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
 
 def manage_data():
@@ -96,7 +97,6 @@ def manage_data():
 
 # The secondary thread that runs to manage the database/memory and delete old items
 def database_manager():
-    global run_threads
     # Run schedule Everyday at 12 midnight
     schedule.every().day.at("00:00").do(manage_data)
     while run_threads:
@@ -106,7 +106,6 @@ def database_manager():
 
 # Entry point
 if __name__ == '__main__':
-    global run_threads
     main_thread = None
     database_manager_thread = None
     try:
@@ -122,7 +121,6 @@ if __name__ == '__main__':
         database_manager_thread.start()
         print("Bot is now live!", time.strftime('%I:%M %p %Z'))
         while True:
-            print("Main...")
             time.sleep(1)
     except KeyboardInterrupt:
         print("Backing up the data...")
