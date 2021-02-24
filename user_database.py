@@ -61,11 +61,15 @@ class UserDatabase:
         if reddit_user_obj is None:
             return False
         else:
-            if reddit_user_obj.current_karma_level < 50 and reddit_user_obj.awarder_karma >= 10:
+            try:
+                current_karma = int(reddit_user_obj.current_karma_level)
+            except ValueError:
+                current_karma = 100
+            if current_karma < 50 and reddit_user_obj.awarder_karma >= 10:
                 return True
-            elif reddit_user_obj.current_karma_level < 100 and reddit_user_obj.awarder_karma >= 15:
+            elif current_karma < 100 and reddit_user_obj.awarder_karma >= 15:
                 return True
-            elif reddit_user_obj.current_karma_level >= 100 and reddit_user_obj.awarder_karma >= 50:
+            elif current_karma >= 100 and reddit_user_obj.awarder_karma >= 50:
                 return True
             else:
                 return False
