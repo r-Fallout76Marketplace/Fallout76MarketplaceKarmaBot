@@ -7,7 +7,7 @@ import CONSTANTS
 
 def reply(comment_or_submission, body):
     # Add disclaimer text
-    response = body + "\n\n ^(This action was performed by a bot, please contact the mods for any questions. "
+    response = body + "\n\n^(This action was performed by a bot, please contact the mods for any questions. "
     response += "[See disclaimer](https://www.reddit.com/user/Vault-TecTradingCo/comments/lkllre" \
                 "/disclaimer_for_rfallout76marketplace/)) "
     try:
