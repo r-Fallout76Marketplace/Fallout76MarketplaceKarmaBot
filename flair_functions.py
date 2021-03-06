@@ -1,3 +1,5 @@
+import json
+
 import praw
 
 import CONFIG
@@ -10,7 +12,9 @@ def is_mod_or_courier(author):
     if author is None:
         return False
     moderators_list = CONFIG.fallout76marketplace.moderator()
-    courier_list = ['_juanv_', 'techybuffalo_279', 'wisck', 'babbbygirllchelss']
+    wiki = CONFIG.fallout76marketplace.wiki["custom_bot_config"]
+    json_format = json.load(wiki.content_md)
+    courier_list = json_format['couriers']
     if author in moderators_list:
         return True
     if author.name.lower() in courier_list:
