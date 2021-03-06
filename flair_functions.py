@@ -13,7 +13,7 @@ def is_mod_or_courier(author):
         return False
     moderators_list = CONFIG.fallout76marketplace.moderator()
     wiki = CONFIG.fallout76marketplace.wiki["custom_bot_config"]
-    json_format = json.load(wiki.content_md)
+    json_format = json.loads(wiki.content_md)
     courier_list = json_format['couriers']
     if author in moderators_list:
         return True
