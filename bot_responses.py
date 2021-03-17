@@ -1,3 +1,5 @@
+import re
+
 import prawcore
 
 # Replies to comment with text=body
@@ -42,11 +44,11 @@ def cannot_reward_yourself_comment(comment):
 
 # If more than two users are involved in the conversation
 def more_than_two_users_involved(comment):
-    comment_body = "Hi " + comment.author.name + "! There are more than two users involved in the conversation. "
-    comment_body += "Please separate out your conversations so the bot can tell which user you are trading with. "
-    comment_body += "If you are not sure you can look at an example of [good karma exchange](" \
-                    "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/trading_karma). " \
-                    "You need to have consecutive 3 back to back comments involving two users only to give karma. "
+    comment_body = "Hi " + comment.author.name + "! It seems that you are trading under someone else's submission. "
+    comment_body += "Karma can only be given by Original Poster (OP) to a user and vice versa. This restriction is "
+    comment_body += "placed to deter other people from hijacking someone else's post. If you want to give karma, one "
+    comment_body += "of you needs to create a new submission, and once you are done, close the submission with !close "
+    comment_body += "command rather than deleting it."
     reply(comment, comment_body)
 
 
