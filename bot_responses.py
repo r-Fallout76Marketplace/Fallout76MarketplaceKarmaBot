@@ -1,5 +1,4 @@
-import re
-
+import praw
 import prawcore
 
 # Replies to comment with text=body
@@ -18,33 +17,38 @@ def reply(comment_or_submission, body):
         new_comment.mod.lock()
     except prawcore.exceptions.Forbidden:
         raise prawcore.exceptions.Forbidden("Could not distinguish/lock comment")
+    except praw.exceptions.APIException:
+        new_comment = comment_or_submission.submission.reply(response)
+        new_comment.mod.distinguish(how="yes")
+        new_comment.mod.lock()
 
 
 # Comment reply when karma is given successfully
 def karma_rewarded_comment(comment):
     p_comment = comment.parent()
-    comment_body = "Hi " + comment.author.name + "! You have successfully rewarded "
-    comment_body += "u/" + p_comment.author.name + " one karma point! "
+    comment_body = "Hi u/{}! You have successfully rewarded u/{} one karma point! ".format(comment.author.name,
+                                                                                           p_comment.author.name)
     comment_body += "Please note that karma may take sometime to update."
     reply(comment, comment_body)
 
 
 # Comment reply if the user tries to give deleted comment karma
 def karma_reward_failed(comment):
-    comment_body = "Hi " + comment.author.name + "! The bot cannot reward karma to deleted submissions or comments. "
+    comment_body = "Hi u/{}! The bot cannot reward karma to deleted submissions or comments. ".format(
+        comment.author.name)
     comment_body += "Please reply to a submission/comment that has not been deleted."
     reply(comment, comment_body)
 
 
 # Cannot award yourself
 def cannot_reward_yourself_comment(comment):
-    comment_body = "Hi " + comment.author.name + "! You cannot reward yourself karma. Sorry."
+    comment_body = "Hi u/{}! You cannot reward yourself karma. Sorry.".format(comment.author.name)
     reply(comment, comment_body)
 
 
 # If more than two users are involved in the conversation
 def more_than_two_users_involved(comment):
-    comment_body = "Hi " + comment.author.name + "! It seems that you are trading under someone else's submission. "
+    comment_body = "Hi u/" + comment.author.name + "! It seems that you are trading under someone else's submission. "
     comment_body += "Karma can only be given by Original Poster (OP) to a user and vice versa. This restriction is "
     comment_body += "placed to deter other people from hijacking someone else's post. If you want to give karma, one "
     comment_body += "of you needs to create a new submission, and once you are done, close the submission with !close "
@@ -54,9 +58,9 @@ def more_than_two_users_involved(comment):
 
 # If conversation is not long enough
 def conversation_not_long_enough(comment):
-    comment_body = "Hi " + comment.author.name + "! There is not enough evidence that the conversation occurred.  "
-    comment_body += "Please negotiate and exchange gamertags in comments rather than in chats/messages. If you are "
-    comment_body += "not sure you can look at an example of [good karma exchange](" \
+    comment_body = "Hi u/" + comment.author.name + "! You cannot award karma to a submission, you need to reply to a "
+    comment_body += "comment. Also, please negotiate and exchange gamertags in comments rather than in chats/messages. "
+    comment_body += "If you are not sure you can look at an example of [good karma exchange](" \
                     "https://www.reddit.com/r/Fallout76Marketplace/wiki/index/trading_karma). " \
                     "This is the minimum conversation we expect from users before they can give karma."
     reply(comment, comment_body)
@@ -64,22 +68,23 @@ def conversation_not_long_enough(comment):
 
 # If the comment itself is removed or the submission is deleted/removed
 def deleted_or_removed(comment):
-    comment_body = "Hi " + comment.author.name + "! It seems that either your comment has been removed by Automoderator"
-    comment_body += " or most probably OP has deleted their submission or has been removed by a Moderator. We don't "
-    comment_body += " allow users to trade karma on deleted/removed submissions. Thank you for your understanding. "
+    comment_body = "Hi u/" + comment.author.name + "! It seems that either your comment has been removed by "
+    comment_body += " Automoderator or most probably OP has deleted their submission or has been removed by a " \
+                    "Moderator.We don't allow users to trade karma on deleted/removed submissions. Thank you for " \
+                    "your understanding. "
     reply(comment, comment_body)
 
 
 # If the users is already awarded in a submission
 def already_rewarded_comment(comment, permalink):
-    comment_body = "Hi " + comment.author.name + "! You have already rewarded " + comment.parent().author.name
+    comment_body = "Hi u/" + comment.author.name + "! You have already rewarded " + comment.parent().author.name
     comment_body += " in this submission [here](https://www.reddit.com/" + permalink + ")."
     reply(comment, comment_body)
 
 
 # If the users is already awarded in a submission
 def karma_reward_limit_reached(comment, karma_logs):
-    comment_body = "Hi " + comment.author.name + "! You have reached the karma reward limit. You will not be able to "
+    comment_body = "Hi u/" + comment.author.name + "! You have reached the karma reward limit. You will not be able to "
     comment_body += "reward karma until next midnight EST. You can contact mods and they can give karma on your behalf "
     comment_body += "Thank you for your patience!"
     reply(comment, comment_body)
@@ -93,7 +98,7 @@ def karma_reward_limit_reached(comment, karma_logs):
 # Failed to give parent comment karma
 def karma_trading_posts_only(comment):
     # Replies with comment
-    comment_body = "Hi " + comment.author.name + "! You can only give karma to others under a trading post i.e "
+    comment_body = "Hi u/" + comment.author.name + "! You can only give karma to others under a trading post i.e "
     comment_body = comment_body + "submission with PlayStation, XBOX or PC flair. Please refer to wiki page for more " \
                                   "information. "
     reply(comment, comment_body)
