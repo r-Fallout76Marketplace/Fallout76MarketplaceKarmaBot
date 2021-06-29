@@ -18,7 +18,7 @@ run_threads = True
 # Send message to discord channel
 def send_message_to_discord(message_param):
     data = {"content": message_param, "username": CONFIG.bot_name}
-    output = requests.post(CONFIG.discord_webhooks, data=json.dumps(data), headers={"Content-Type": "application/json"})
+    output = requests.post(CONFIG.err_msgs, data=json.dumps(data), headers={"Content-Type": "application/json"})
     output.raise_for_status()
 
 
