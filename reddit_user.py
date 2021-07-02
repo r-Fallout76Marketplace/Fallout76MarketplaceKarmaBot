@@ -1,15 +1,6 @@
-import json
-
 import requests
 
 import CONFIG
-
-
-# Send message to discord channel
-def send_message_to_discord(message_param):
-    data = {"content": message_param, "username": CONFIG.bot_name}
-    output = requests.post(CONFIG.mod_channel, data=json.dumps(data), headers={"Content-Type": "application/json"})
-    output.raise_for_status()
 
 
 # Class RedditUser
@@ -39,7 +30,7 @@ class RedditUser:
         self.awarder_karma = self.awarder_karma + 1
         if self.awarder_karma > 20 and self.awarder_limit_alert_sent != 1:
             try:
-                send_message_to_discord(self.user_name + " has given 20+ karma today")
+                CONFIG.send_message_to_discord(self.user_name + " has given 20+ karma today")
                 self.awarder_limit_alert_sent = 1
             except requests.exceptions.HTTPError:
                 pass
@@ -58,7 +49,7 @@ class RedditUser:
         self.awardee_karma = self.awardee_karma + 1
         if self.awardee_karma > 20 and self.awardee_limit_alert_sent != 1:
             try:
-                send_message_to_discord(self.user_name + " has received 20+ karma today")
+                CONFIG.send_message_to_discord(self.user_name + " has received 20+ karma today")
                 self.awardee_limit_alert_sent = 1
             except requests.exceptions.HTTPError:
                 pass

@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 
 import praw
+import requests
 
 import CONFIG
 import CONSTANTS
@@ -82,7 +83,7 @@ class BotDatabase:
             bot_responses.karma_trading_posts_only(comment)
             return CONSTANTS.INCORRECT_SUBMISSION_TYPE
 
-        # User tries to give karma to deleted submission
+        # User tries to give karma to deleted parent obj
         if comment.parent().author is None:
             bot_responses.deleted_or_removed(comment)
             return CONSTANTS.DELETED_OR_REMOVED
@@ -111,8 +112,10 @@ class BotDatabase:
                     comment.author.name, unix_time_at_previous_midnight))
             result = self.karma_logs_db_cursor.fetchall()
             bot_responses.karma_reward_limit_reached(comment, result)
-            return CONSTANTS.KARMA_AWARDING_LIMIT_REACHED
-
+            try:
+                CONFIG.send_message_to_discord(comment.author.name + " has reached awarder karma limit")
+            except requests.exceptions.HTTPError:
+                pass
         # checks rest of the conversation rules
         return conversation_checks.checks_for_karma_command(comment)
 
