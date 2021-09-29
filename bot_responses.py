@@ -2,7 +2,6 @@ import praw
 import prawcore
 
 # Replies to comment with text=body
-import CONFIG
 import CONSTANTS
 
 
@@ -78,21 +77,22 @@ def deleted_or_removed(comment):
 # If the users is already awarded in a submission
 def already_rewarded_comment(comment, permalink):
     comment_body = "Hi u/" + comment.author.name + "! You have already rewarded " + comment.parent().author.name
-    comment_body += " in this submission [here](https://www.reddit.com/" + permalink + ")."
+    comment_body += " in this submission [here](https://www.reddit.com" + permalink + ")."
     reply(comment, comment_body)
 
 
 # If the users is already awarded in a submission
-def karma_reward_limit_reached(comment, karma_logs):
+def karma_reward_limit_reached(comment, karma_logs, legacy76):
     comment_body = "Hi u/" + comment.author.name + "! You have reached the karma reward limit. You will not be able to "
-    comment_body += "reward karma until next midnight EST. You can contact mods and they can give karma on your behalf "
-    comment_body += "Thank you for your patience!"
+    comment_body += "reward karma until next [midnight EST](https://time.is/EST). You can contact mods and they can "
+    comment_body += "give karma on your behalf. Thank you for your patience!"
     reply(comment, comment_body)
     title = comment.author.name + " have reached their daily awarder karma limit"
     self_text = ""
-    for i in range(karma_logs):
-        self_text += "[Awarded to " + karma_logs[3] + str(i) + "](https://www.reddit.com/" + karma_logs[5] + ")\n\n"
-    CONFIG.legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.AWARDER_KARMA_LIMIT_REACHED)
+    for log in karma_logs:
+        self_text += f"Awarded to user u/{log[4]}: [Link to the comment](https://www.reddit.com{log[6]})\n\n"
+    submission = legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.AWARDER_KARMA_LIMIT_REACHED)
+    return f"https://www.reddit.com{submission.permalink}"
 
 
 # Failed to give parent comment karma

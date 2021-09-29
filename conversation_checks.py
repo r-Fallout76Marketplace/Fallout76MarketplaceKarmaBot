@@ -1,37 +1,18 @@
-import re
-
-import praw
-
 import CONSTANTS
 import bot_responses
+import common_functions
 import flair_functions
 
 
-# Checks if submission is eligible for trading
-# Checks that need to be passed are
-# Submission must have right flair and trade should not be closed
-def flair_checks(comment_or_submission):
-    regex = re.compile('XBOX|PlayStation|PC', re.IGNORECASE)
-    # Check if the object is of submission type otherwise get the submission from comment object
-    if isinstance(comment_or_submission, praw.models.reddit.submission.Submission):
-        submission = comment_or_submission
-    else:
-        submission = comment_or_submission.submission
-    submission_flair_text = submission.link_flair_text
-    match = re.match(regex, str(submission_flair_text))
-    # If No match found match is None
-    if match is None:
-        return False
-    else:
-        return True
-
-
-# Performs checks if the submission can be closed
 def checks_for_close_command(comment):
+    """
+    # Performs checks if the submission can be closed
+    :param comment: The comment object praw
+    """
     # Only OP can close the trade
     if comment.author == comment.submission.author:
         # You can close trading posts only
-        if flair_checks(comment):
+        if common_functions.flair_checks(comment):
             flair_functions.close_post_trade(comment)
             bot_responses.close_submission_comment(comment.submission)
         else:
@@ -42,7 +23,13 @@ def checks_for_close_command(comment):
         bot_responses.close_submission_failed(comment, True)
 
 
-def checks_for_karma_command(comment):
+def checks_for_karma_command(comment, fallout76marketplace):
+    """
+    Performs checks for karma command comments
+    :param comment: the command comment
+    :param fallout76marketplace: reddit instance for subreddit
+    :return: checks result
+    """
     # Make sure author isn't rewarding themselves
     if comment.author == comment.parent().author:
         bot_responses.cannot_reward_yourself_comment(comment)
@@ -63,7 +50,7 @@ def checks_for_karma_command(comment):
 
     # Remove mods and couriers from the users involved
     for user in users_involved.copy():
-        if flair_functions.is_mod_or_courier(user):
+        if flair_functions.is_mod_or_courier(user, fallout76marketplace):
             users_involved.remove(user)
 
     # If comment itself or the submission has been removed/deleted

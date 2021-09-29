@@ -2,17 +2,16 @@ import json
 
 import praw
 
-import CONFIG
 import CONSTANTS
 import bot_responses
 
 
 # Checks if the author is mod
-def is_mod_or_courier(author):
+def is_mod_or_courier(author, fallout76marketplace):
     if author is None:
         return False
-    moderators_list = CONFIG.fallout76marketplace.moderator()
-    wiki = CONFIG.fallout76marketplace.wiki["custom_bot_config"]
+    moderators_list = fallout76marketplace.moderator()
+    wiki = fallout76marketplace.wiki["custom_bot_config"]
     json_format = json.loads(wiki.content_md)
     courier_list = json_format['couriers']
     if author in moderators_list:
@@ -23,31 +22,31 @@ def is_mod_or_courier(author):
 
 
 # Assigns flair to user based on karma value and mod status
-def assign_karma(p_comment, user_flair):
+def assign_karma(p_comment, user_flair, fallout76marketplace):
     author_name = p_comment.author.name
     # Splits Flair into two
     user_flair_split = user_flair.split()
 
     # If user is mod assigns the green flair
-    if is_mod_or_courier(p_comment.author):
-        CONFIG.fallout76marketplace.flair.set(author_name, text=str(user_flair),
-                                              flair_template_id=CONSTANTS.MODS_AND_COURIERS_FLAIR)
+    if is_mod_or_courier(p_comment.author, fallout76marketplace):
+        fallout76marketplace.flair.set(author_name, text=str(user_flair),
+                                       flair_template_id=CONSTANTS.MODS_AND_COURIERS_FLAIR)
     else:
         # otherwise assigns flair based on karma value
         karma_value = int(user_flair_split[-1])
         if karma_value < 49:
-            CONFIG.fallout76marketplace.flair.set(author_name, text=str(user_flair),
-                                                  flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+            fallout76marketplace.flair.set(author_name, text=str(user_flair),
+                                           flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
         elif 50 <= karma_value < 99:
-            CONFIG.fallout76marketplace.flair.set(author_name, text=str(user_flair),
-                                                  flair_template_id=CONSTANTS.FIFTY_TO_HUNDRED_FLAIR)
+            fallout76marketplace.flair.set(author_name, text=str(user_flair),
+                                           flair_template_id=CONSTANTS.FIFTY_TO_HUNDRED_FLAIR)
         else:
-            CONFIG.fallout76marketplace.flair.set(author_name, text=str(user_flair),
-                                                  flair_template_id=CONSTANTS.ABOVE_HUNDRED_FLAIR)
+            fallout76marketplace.flair.set(author_name, text=str(user_flair),
+                                           flair_template_id=CONSTANTS.ABOVE_HUNDRED_FLAIR)
 
 
 # Increments karma by 1
-def increment_karma(comment):
+def increment_karma(comment, fallout76marketplace):
     try:
         p_comment = comment.parent()
         author_name = p_comment.author.name
@@ -57,8 +56,8 @@ def increment_karma(comment):
     # if the author has no flair
     if p_comment.author_flair_css_class == '' or p_comment.author_flair_css_class is None:
         # sets the flair to one
-        CONFIG.fallout76marketplace.flair.set(author_name, text='Karma: 1',
-                                              flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+        fallout76marketplace.flair.set(author_name, text='Karma: 1',
+                                       flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
     else:
         # Getting the flair and adding the value
         user_flair = p_comment.author_flair_text
@@ -72,11 +71,11 @@ def increment_karma(comment):
             pass
         # Combines back string and int part
         user_flair = ' '.join(map(str, user_flair_split))
-        assign_karma(p_comment, user_flair)
+        assign_karma(p_comment, user_flair, fallout76marketplace)
 
 
 # Decrements karma by 1
-def decrement_karma(comment):
+def decrement_karma(comment, fallout76marketplace):
     try:
         p_comment = comment.parent()
         author_name = p_comment.author.name
@@ -86,8 +85,8 @@ def decrement_karma(comment):
     # if the author has no flair
     if p_comment.author_flair_css_class == '' or p_comment.author_flair_css_class is None:
         # sets the flair to one
-        CONFIG.fallout76marketplace.flair.set(author_name, text='Karma: -1',
-                                              flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
+        fallout76marketplace.flair.set(author_name, text='Karma: -1',
+                                       flair_template_id=CONSTANTS.ZERO_TO_FIFTY_FLAIR)
     else:
         # Getting the flair and adding the value
         user_flair = p_comment.author_flair_text
@@ -101,7 +100,7 @@ def decrement_karma(comment):
             pass
         # Combines back string and int part
         user_flair = ' '.join(map(str, user_flair_split))
-        assign_karma(p_comment, user_flair)
+        assign_karma(p_comment, user_flair, fallout76marketplace)
 
 
 # Changes the flair to Trade Closed and locks submission

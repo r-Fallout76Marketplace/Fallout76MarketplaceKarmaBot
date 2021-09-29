@@ -1,123 +1,171 @@
-import json
 import sqlite3
 import time
 import traceback
+from contextlib import closing
+from functools import wraps
 from threading import Thread, Lock
 
+import praw
 import prawcore
 import requests
 import schedule
+import yaml
 
-import CONFIG
-import bot_database
-import user_database
+import common_functions
+import database_manager
 
 run_threads = True
+bot_config = {}
 
 
-# Send message to discord channel
-def send_message_to_discord(message_param):
-    data = {"content": message_param, "username": CONFIG.bot_name}
-    output = requests.post(CONFIG.err_msgs, data=json.dumps(data), headers={"Content-Type": "application/json"})
-    output.raise_for_status()
+def post_to_pastebin(title, body):
+    """
+    Uploads the text to PasteBin and returns the url of the Paste
+    :param title: Title of the Paste
+    :param body: Body of Paste
+    :return: url of Paste
+    """
+    login_data = {
+        'api_dev_key': bot_config['pastebin_credentials']['api_key'],
+        'api_user_name': bot_config['pastebin_credentials']['username'],
+        'api_user_password': bot_config['pastebin_credentials']['password']
+    }
+
+    data = {
+        'api_option': 'paste',
+        'api_dev_key': bot_config['pastebin_credentials']['api_key'],
+        'api_paste_code': body,
+        'api_paste_name': title,
+        'api_paste_expire_date': '1W',
+        'api_user_key': None,
+        'api_paste_format': 'python'
+    }
+
+    login = requests.post("https://pastebin.com/api/api_login.php", data=login_data)
+    login.raise_for_status()
+    data['api_user_key'] = login.text
+
+    r = requests.post("https://pastebin.com/api/api_post.php", data=data)
+    r.raise_for_status()
+    return r.text
 
 
-# main thread where the bot will run
-def main():
-    mutex = Lock()
-    failed_attempt = 1
-    # Gets 100 historical comments
-    comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
-    while run_threads:
-        try:
-            # Gets a continuous stream of comments
-            for comment in comment_stream:
-                if comment is None:
-                    break
-                mutex.acquire()
-                comment_database_obj.load_comment(comment, user_database_obj)
-                mutex.release()
-
-            # Resetting failed attempt counter in case the code doesn't throw exception
-            failed_attempt = 1
-        except Exception as main_loop_exception:
-            if mutex.locked():
-                mutex.release()
-            # Sends a message to mods in case of error
-            tb = traceback.format_exc()
+def catch_exceptions():
+    def catch_exceptions_decorator(job_func):
+        @wraps(job_func)
+        def wrapper(*args, **kwargs):
             try:
-                send_message_to_discord(tb)
-                print(tb)
-                # Refreshing Streams
-            except Exception as discord_exception:
-                print("Error sending message to discord", str(discord_exception))
+                job_func(*args, **kwargs)
+            except Exception as exp:
+                tb = traceback.format_exc()
+                try:
+                    url = post_to_pastebin(f"{type(exp).__name__}: {exp}", tb)
+                    common_functions.send_message_to_discord(bot_config['discord_webhooks']['err_channel'],
+                                                             f"[{type(exp).__name__}: {exp}]({url})")
+                except Exception as discord_exception:
+                    print(tb)
+                    print("\nError sending message to discord", str(discord_exception))
+                # In case of server error pause for 5 minutes
+                if isinstance(exp, prawcore.exceptions.ServerError):
+                    print("Waiting 5 minutes...")
+                    time.sleep(300)
 
-            # In case of server error pause for two minutes
-            if isinstance(main_loop_exception, prawcore.exceptions.ServerError):
-                print("Waiting 2 minutes")
-                # Try again after a pause
-                time.sleep(120 * failed_attempt)
-                failed_attempt = failed_attempt + 1
+                if job_func.__name__ == 'main' and run_threads:
+                    catch_exceptions()(comment_listner)()
 
-            # Refresh streams
-            comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+        return wrapper
+
+    return catch_exceptions_decorator
 
 
-def manage_data():
+@catch_exceptions()
+def comment_listner(*args, **kwargs):
+    fallout76marketplace = args[0]
+    legacy76 = args[1]
+    db_conn = args[2]
+    mod_channel_webhook = bot_config['discord_webhooks']['mod_channel']
+
+    # Gets 100 historical comments
+    comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+    while run_threads:
+        # Gets a continuous stream of comments
+        for comment in comment_stream:
+            if comment is None:
+                break
+            mutex = Lock()
+            with mutex:
+                database_manager.load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+
+
+@catch_exceptions()
+def delete_old_records():
+    """
+    Deletes the karma logs older than 6 months and posts karma transfer statistics of everyday
+    """
+    # Calculate what was unix time 6 months ago
+    seconds_in_six_months = 180 * 60 * 60 * 24
+    unix_time_now = time.time()
+    unix_time_six_months_ago = unix_time_now - seconds_in_six_months
     mutex = Lock()
-    try:
-        # Calculate what was unix time 6 months ago
-        seconds_in_six_months = 180 * 60 * 60 * 24
-        unix_time_now = time.time()
-        unix_time_six_months_ago = unix_time_now - seconds_in_six_months
-        karma_logs_db_conn = sqlite3.connect('karma_logs.db', check_same_thread=False)
-        karma_logs_db_cursor = karma_logs_db_conn.cursor()
-
-        mutex.acquire()
-        # delete the record of comments that are of older than 6 months
-        karma_logs_db_cursor.execute(
-            "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_six_months_ago))
-        # commit
-        karma_logs_db_conn.commit()
-        mutex.release()
-
-        user_database_obj.archive_data()
-        user_database_obj.erase_data()
-        print("Old data deleted " + time.strftime('%I:%M %p %Z'))
-    except Exception as main_loop_exception:
-        if mutex.locked():
-            mutex.release()
-        tb = traceback.format_exc()
-        print(main_loop_exception)
-        try:
-            send_message_to_discord(tb)
-        except Exception as discord_exception:
-            print("Error sending message to discord", str(discord_exception))
+    with mutex:
+        with closing(sqlite3.connect('karma_logs.db', check_same_thread=False)) as db_conn:
+            with closing(db_conn.cursor()) as cursor:
+                # delete the record of comments that are of older than 6 months
+                # since by that time the submission is archived
+                cursor.execute(
+                    "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_six_months_ago))
+            db_conn.commit()
+    print("Old data deleted " + time.strftime('%I:%M %p %Z'))
 
 
-# The secondary thread that runs to manage the database/memory and delete old items
-def database_manager():
-    # Run schedule Everyday at 12 midnight
-    schedule.every().day.at("00:00").do(manage_data)
+def database_thread():
+    """
+    The secondary thread that runs to manage the database/memory and delete old items
+    """
+    # Run schedule every week at midnight
+    schedule.every(1).weeks.do(delete_old_records)
     while run_threads:
         schedule.run_pending()
         time.sleep(1)
 
 
-# Entry point
-if __name__ == '__main__':
-    main_thread = None
-    database_manager_thread = None
+def main():
+    global run_threads
+    global bot_config
+
+    with open('config.yaml') as stream:
+        bot_config = yaml.safe_load(stream)
+
+    # Logging into Reddit
+    reddit = praw.Reddit(client_id=bot_config['reddit_credentials']['client_id'],
+                         client_secret=bot_config['reddit_credentials']['client_secret'],
+                         username=bot_config['reddit_credentials']['username'],
+                         password=bot_config['reddit_credentials']['password'],
+                         user_agent=bot_config['reddit_credentials']['user_agent'])
+    fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
+    legacy76 = reddit.subreddit("legacy76")
+
+    db_conn = sqlite3.connect('karma_logs.db', check_same_thread=False)
+    # create table in karma logs db if it doesn't exist
+    with closing(db_conn.cursor()) as cursor:
+        cursor.execute("""CREATE TABLE IF NOT EXISTS comments (
+                                                    comment_ID text,
+                                                    submission_ID text,
+                                                    submission_created_utc real,
+                                                    from_author_name text,
+                                                    to_author_name text,
+                                                    time_created_utc real,
+                                                    permalink text
+                                                    )""")
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS comment_ID_index ON comments (comment_ID)")
+    db_conn.commit()
+
+    # Create threads
+    comment_listner_thread = Thread(target=comment_listner, args=[fallout76marketplace, legacy76, db_conn])
+    database_manager_thread = Thread(target=database_thread)
     try:
-        comment_database_obj = bot_database.BotDatabase()
-        user_database_obj = user_database.UserDatabase()
-        # logs karma logs of one day
-        comment_database_obj.load_data_from_karma_logs(user_database_obj)
-        # Create threads
-        main_thread = Thread(target=main)
-        database_manager_thread = Thread(target=database_manager)
         # run the threads
-        main_thread.start()
+        comment_listner_thread.start()
         database_manager_thread.start()
         print("Bot is now live!", time.strftime('%I:%M %p %Z'))
         while True:
@@ -126,7 +174,13 @@ if __name__ == '__main__':
         print("Backing up the data...")
         schedule.run_all()
         run_threads = False
-        main_thread.join()
+        comment_listner_thread.join()
         database_manager_thread.join()
+        db_conn.close()
         print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
         quit()
+
+
+# Entry point
+if __name__ == '__main__':
+    main()
