@@ -14,9 +14,6 @@ import yaml
 import common_functions
 import database_manager
 
-run_threads = True
-bot_config = {}
-
 
 def post_to_pastebin(title, body):
     """
@@ -54,8 +51,10 @@ def catch_exceptions():
     def catch_exceptions_decorator(job_func):
         @wraps(job_func)
         def wrapper(*args, **kwargs):
+            global failed_attempt
             try:
                 job_func(*args, **kwargs)
+                failed_attempt = 1
             except Exception as exp:
                 tb = traceback.format_exc()
                 try:
@@ -65,13 +64,11 @@ def catch_exceptions():
                 except Exception as discord_exception:
                     print(tb)
                     print("\nError sending message to discord", str(discord_exception))
-                # In case of server error pause for 5 minutes
+                # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, prawcore.exceptions.ServerError):
-                    print("Waiting 5 minutes...")
-                    time.sleep(300)
-
-                if job_func.__name__ == 'main' and run_threads:
-                    catch_exceptions()(comment_listner)()
+                    print(f"Waiting {(300 * failed_attempt) / 60} minutes...")
+                    time.sleep(300 * failed_attempt)
+                    failed_attempt += 1
 
         return wrapper
 
@@ -79,7 +76,7 @@ def catch_exceptions():
 
 
 @catch_exceptions()
-def comment_listner(*args, **kwargs):
+def comment_listner(args):
     fallout76marketplace = args[0]
     legacy76 = args[1]
     db_conn = args[2]
@@ -87,14 +84,22 @@ def comment_listner(*args, **kwargs):
 
     # Gets 100 historical comments
     comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+    # Gets a continuous stream of comments
+    for comment in comment_stream:
+        if comment is None:
+            break
+        mutex = Lock()
+        with mutex:
+            database_manager.load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+
+
+def listener_thread(*args):
+    """
+    Thread for comment_listner
+    :param args:
+    """
     while run_threads:
-        # Gets a continuous stream of comments
-        for comment in comment_stream:
-            if comment is None:
-                break
-            mutex = Lock()
-            with mutex:
-                database_manager.load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+        comment_listner(args)
 
 
 @catch_exceptions()
@@ -161,7 +166,7 @@ def main():
     db_conn.commit()
 
     # Create threads
-    comment_listner_thread = Thread(target=comment_listner, args=[fallout76marketplace, legacy76, db_conn])
+    comment_listner_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn))
     database_manager_thread = Thread(target=database_thread)
     try:
         # run the threads
@@ -183,4 +188,7 @@ def main():
 
 # Entry point
 if __name__ == '__main__':
+    run_threads = True
+    failed_attempt = 1
+    bot_config = {}
     main()
