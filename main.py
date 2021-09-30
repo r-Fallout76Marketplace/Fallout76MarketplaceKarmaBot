@@ -64,11 +64,15 @@ def catch_exceptions():
                 except Exception as discord_exception:
                     print(tb)
                     print("\nError sending message to discord", str(discord_exception))
+
                 # In case of server error pause for multiple of 5 minutes
-                if isinstance(exp, prawcore.exceptions.ServerError):
+                if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
                     print(f"Waiting {(300 * failed_attempt) / 60} minutes...")
                     time.sleep(300 * failed_attempt)
                     failed_attempt += 1
+
+                    if job_func.__name__ == 'comment_listner':
+                        raise StopIteration("Reinitialize comment generator")
 
         return wrapper
 
@@ -76,14 +80,13 @@ def catch_exceptions():
 
 
 @catch_exceptions()
-def comment_listner(args):
+def comment_listner(*args, **kwargs):
     fallout76marketplace = args[0]
     legacy76 = args[1]
     db_conn = args[2]
     mod_channel_webhook = bot_config['discord_webhooks']['mod_channel']
+    comment_stream = kwargs['comment_stream']
 
-    # Gets 100 historical comments
-    comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     # Gets a continuous stream of comments
     for comment in comment_stream:
         if comment is None:
@@ -98,8 +101,14 @@ def listener_thread(*args):
     Thread for comment_listner
     :param args:
     """
+    # Gets 100 historical comments
+    fallout76marketplace = args[0]
+    comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while run_threads:
-        comment_listner(args)
+        try:
+            comment_listner(*args, comment_stream=comment_stream)
+        except StopIteration:
+            comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
 
 @catch_exceptions()
@@ -166,7 +175,7 @@ def main():
     db_conn.commit()
 
     # Create threads
-    comment_listner_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn))
+    comment_listner_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn, None))
     database_manager_thread = Thread(target=database_thread)
     try:
         # run the threads
