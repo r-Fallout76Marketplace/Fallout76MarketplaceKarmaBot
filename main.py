@@ -126,8 +126,7 @@ def delete_old_records():
             with closing(db_conn.cursor()) as cursor:
                 # delete the record of comments that are of older than 6 months
                 # since by that time the submission is archived
-                cursor.execute(
-                    "DELETE FROM comments WHERE submission_created_utc <= '{}'".format(unix_time_six_months_ago))
+                cursor.execute(f"DELETE FROM comments WHERE submission_created_utc <= '{unix_time_six_months_ago}'")
             db_conn.commit()
     print("Old data deleted " + time.strftime('%I:%M %p %Z'))
 

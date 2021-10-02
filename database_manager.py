@@ -69,10 +69,9 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
 
     with closing(db_conn.cursor()) as cursor:
         # Checks in karma logs to see if user has already rewarded the user
-        cursor.execute("""SELECT * FROM comments WHERE submission_id='{}' AND from_author_name='{}'
-                                            AND to_author_name='{}'""".format(submission.id,
-                                                                              comment.author.name,
-                                                                              comment.parent().author.name))
+        cursor.execute(f"""SELECT * FROM comments WHERE submission_id='{submission.id}' 
+                                                    AND from_author_name='{comment.author.name}'
+                                                    AND to_author_name='{comment.parent().author.name}'""")
         result = cursor.fetchone()
 
     if result is not None:
@@ -85,8 +84,8 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
         seconds_from_previous_midnight = time.localtime().tm_hour * 3600 + time.localtime().tm_min * 60 + time.localtime().tm_sec
         unix_time_at_previous_midnight = time_now - seconds_from_previous_midnight
 
-        cursor.execute("""SELECT * FROM comments WHERE from_author_name='{}' 
-        AND time_created_utc >= '{}'""".format(comment.author.name, unix_time_at_previous_midnight))
+        cursor.execute(f"""SELECT * FROM comments WHERE from_author_name='{comment.author.name}' AND 
+        time_created_utc >= '{unix_time_at_previous_midnight}'""")
         result = cursor.fetchall()
 
         if len(result) >= 10:
@@ -118,13 +117,22 @@ def process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_con
         if output is CONSTANTS.KARMA_CHECKS_PASSED:
             try:
                 with closing(db_conn.cursor()) as cursor:
-                    cursor.execute("""INSERT INTO comments VALUES ('{}', '{}', '{}', '{}', 
-                                                    '{}', '{}', '{}')""".format(comment.id, comment.submission.id,
-                                                                                comment.submission.created_utc,
-                                                                                comment.author.name,
-                                                                                comment.parent().author.name,
-                                                                                comment.created_utc,
-                                                                                comment.permalink))
+                    comment_dict = {'comment_id': comment.id,
+                                    'comment_submission_id': comment.submission.id,
+                                    'comment_submission_created_utc': comment.submission.created_utc,
+                                    'comment_author_name': comment.author.name,
+                                    'comment_parent_author_name': comment.parent().author.name,
+                                    'comment_created_utc': comment.created_utc,
+                                    'comment_permalink': comment.permalink
+                                    }
+                    cursor.execute("INSERT INTO comments VALUES ("
+                                   ":comment_id, "
+                                   ":comment_submission_id, "
+                                   ":comment_submission_created_utc, "
+                                   ":comment_author_name, "
+                                   ":comment_parent_author_name, "
+                                   ":comment_created_utc, "
+                                   ":comment_permalink)", comment_dict)
                 db_conn.commit()
             except sqlite3.IntegrityError:
                 raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
@@ -162,14 +170,22 @@ def load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_w
             flair_functions.increment_karma(comment, fallout76marketplace)
             try:
                 with closing(db_conn.cursor()) as cursor:
-                    cursor.execute("""INSERT INTO comments VALUES ('{}', '{}', '{}', '{}', 
-                                                        '{}', '{}', '{}')""".format(comment.id,
-                                                                                    comment.submission.id,
-                                                                                    comment.submission.created_utc,
-                                                                                    comment.author.name,
-                                                                                    comment.parent().author.name,
-                                                                                    comment.created_utc,
-                                                                                    comment.permalink))
+                    comment_dict = {'comment_id': comment.id,
+                                    'comment_submission_id': comment.submission.id,
+                                    'comment_submission_created_utc': comment.submission.created_utc,
+                                    'comment_author_name': comment.author.name,
+                                    'comment_parent_author_name': comment.parent().author.name,
+                                    'comment_created_utc': comment.created_utc,
+                                    'comment_permalink': comment.permalink
+                                    }
+                    cursor.execute("INSERT INTO comments VALUES ("
+                                   ":comment_id, "
+                                   ":comment_submission_id, "
+                                   ":comment_submission_created_utc, "
+                                   ":comment_author_name, "
+                                   ":comment_parent_author_name, "
+                                   ":comment_created_utc, "
+                                   ":comment_permalink)", comment_dict)
                 db_conn.commit()
             except sqlite3.IntegrityError:
                 raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
