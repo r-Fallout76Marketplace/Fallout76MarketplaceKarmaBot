@@ -11,7 +11,7 @@ def flair_checks(comment_or_submission) -> bool:
     The karma can only be exchanged under the submission with flair XBOX, PlayStation, or PC.
     :param comment_or_submission: praw object (Submission or Comment)
     """
-    regex = re.compile('XBOX|PlayStation|PC', re.IGNORECASE)
+    regex = re.compile('^XBOX|PlayStation|PC$', re.IGNORECASE)
     # Check if the object is of submission type otherwise get the submission from comment object
     if isinstance(comment_or_submission, praw.models.reddit.submission.Submission):
         submission = comment_or_submission
