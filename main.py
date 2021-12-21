@@ -1,3 +1,5 @@
+import logging.config
+import os
 import sqlite3
 import time
 import traceback
@@ -57,22 +59,23 @@ def catch_exceptions():
                 failed_attempt = 1
             except Exception as exp:
                 tb = traceback.format_exc()
+                root_logger.error(tb)
                 try:
+                    root_logger.info("Uploading the stack track to pastebin.")
                     url = post_to_pastebin(f"{type(exp).__name__}: {exp}", tb)
-                    common_functions.send_message_to_discord(bot_config['discord_webhooks']['err_channel'],
-                                                             f"[{type(exp).__name__}: {exp}]({url})")
+                    root_logger.info("Sending the pastebin url to discord via webhook.")
+                    common_functions.send_message_to_discord(bot_config['discord_webhooks']['err_channel'], f"[{type(exp).__name__}: {exp}]({url})")
                 except Exception as discord_exception:
-                    print(tb)
-                    print("\nError sending message to discord", str(discord_exception))
+                    root_logger.error(f"Error sending message to discord {discord_exception}")
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                    print(f"Waiting {(300 * failed_attempt) / 60} minutes...")
+                    root_logger.warning(f"Waiting {(300 * failed_attempt) / 60} minutes...")
                     time.sleep(300 * failed_attempt)
                     failed_attempt += 1
 
-                    if job_func.__name__ == 'comment_listner':
-                        raise StopIteration("Reinitialize comment generator")
+                    if job_func.__name__ == 'comment_listener':
+                        raise StopIteration("Reinitialize comment generator.")
 
         return wrapper
 
@@ -80,7 +83,7 @@ def catch_exceptions():
 
 
 @catch_exceptions()
-def comment_listner(*args, **kwargs):
+def comment_listener(*args, **kwargs):
     fallout76marketplace = args[0]
     legacy76 = args[1]
     db_conn = args[2]
@@ -101,13 +104,15 @@ def listener_thread(*args):
     Thread for comment_listner
     :param args:
     """
+    root_logger.info("Running the listener_thread to listen to comments stream from subreddit.")
     # Gets 100 historical comments
     fallout76marketplace = args[0]
     comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while run_threads:
         try:
-            comment_listner(*args, comment_stream=comment_stream)
+            comment_listener(*args, comment_stream=comment_stream)
         except StopIteration:
+            root_logger.info("Reinitializing the comment generator.")
             comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
 
@@ -116,6 +121,7 @@ def delete_old_records():
     """
     Deletes the karma logs older than 6 months and posts karma transfer statistics of everyday
     """
+    root_logger.info("Running the schedule in the thread delete_old_records to delete old data.")
     # Calculate what was unix time 6 months ago
     seconds_in_six_months = 180 * 60 * 60 * 24
     unix_time_now = time.time()
@@ -127,8 +133,9 @@ def delete_old_records():
                 # delete the record of comments that are of older than 6 months
                 # since by that time the submission is archived
                 cursor.execute(f"DELETE FROM comments WHERE submission_created_utc <= '{unix_time_six_months_ago}'")
+                root_logger.info(f"Deleted {cursor.rowcount} rows from the database.")
             db_conn.commit()
-    print("Old data deleted " + time.strftime('%I:%M %p %Z'))
+    root_logger.info("Old data deleted.")
 
 
 def database_thread():
@@ -148,6 +155,7 @@ def main():
 
     with open('config.yaml') as stream:
         bot_config = yaml.safe_load(stream)
+        root_logger.info("Loaded the bot config file.")
 
     # Logging into Reddit
     reddit = praw.Reddit(client_id=bot_config['reddit_credentials']['client_id'],
@@ -155,8 +163,7 @@ def main():
                          username=bot_config['reddit_credentials']['username'],
                          password=bot_config['reddit_credentials']['password'],
                          user_agent=bot_config['reddit_credentials']['user_agent'])
-    fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
-    legacy76 = reddit.subreddit("legacy76")
+    root_logger.info(f"Logged into Reddit as u/{reddit.user.me()}.")
 
     db_conn = sqlite3.connect('karma_logs.db', check_same_thread=False)
     # create table in karma logs db if it doesn't exist
@@ -172,7 +179,10 @@ def main():
                                                     )""")
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS comment_ID_index ON comments (comment_ID)")
     db_conn.commit()
+    root_logger.info("Established link to database file karma_logs.db.")
 
+    fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
+    legacy76 = reddit.subreddit("legacy76")
     # Create threads
     comment_listner_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn, None))
     database_manager_thread = Thread(target=database_thread)
@@ -180,17 +190,17 @@ def main():
         # run the threads
         comment_listner_thread.start()
         database_manager_thread.start()
-        print("Bot is now live!", time.strftime('%I:%M %p %Z'))
+        root_logger.info("Bot is now live.")
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Backing up the data...")
+        root_logger.info("Backing up the data...")
         schedule.run_all()
         run_threads = False
         comment_listner_thread.join()
         database_manager_thread.join()
         db_conn.close()
-        print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
+        root_logger.info("Bot has stopped.")
         quit()
 
 
@@ -199,4 +209,10 @@ if __name__ == '__main__':
     run_threads = True
     failed_attempt = 1
     bot_config = {}
+
+    # Setting up Logging
+    if not os.path.exists("logs"):
+        os.mkdir("logs")
+    logging.config.fileConfig("logging.conf")
+    root_logger = logging.getLogger('root')
     main()

@@ -7,3 +7,4 @@ karma_logs.db-journal
 config.yaml
 karma_bot
 karma_bot.pub
+/logs
