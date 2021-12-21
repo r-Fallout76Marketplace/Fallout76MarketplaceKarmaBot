@@ -184,11 +184,11 @@ def main():
     fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
     legacy76 = reddit.subreddit("legacy76")
     # Create threads
-    comment_listner_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn, None))
+    comment_listener_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn, None))
     database_manager_thread = Thread(target=database_thread)
     try:
         # run the threads
-        comment_listner_thread.start()
+        comment_listener_thread.start()
         database_manager_thread.start()
         root_logger.info("Bot is now live.")
         while True:
@@ -197,7 +197,7 @@ def main():
         root_logger.info("Backing up the data...")
         schedule.run_all()
         run_threads = False
-        comment_listner_thread.join()
+        comment_listener_thread.join()
         database_manager_thread.join()
         db_conn.close()
         root_logger.info("Bot has stopped.")
@@ -214,5 +214,5 @@ if __name__ == '__main__':
     if not os.path.exists("logs"):
         os.mkdir("logs")
     logging.config.fileConfig("logging.conf")
-    root_logger = logging.getLogger('root')
+    root_logger = logging.getLogger('main')
     main()
