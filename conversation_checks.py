@@ -6,8 +6,9 @@ import flair_functions
 
 def checks_for_close_command(comment):
     """
-    # Performs checks if the submission can be closed
-    :param comment: The comment object praw
+    # Performs checks if the submission can be closed.
+
+    :param comment: The comment object praw.
     """
     # Only OP can close the trade
     if comment.author == comment.submission.author:
@@ -25,10 +26,11 @@ def checks_for_close_command(comment):
 
 def checks_for_karma_command(comment, fallout76marketplace):
     """
-    Performs checks for karma command comments
-    :param comment: the command comment
-    :param fallout76marketplace: reddit instance for subreddit
-    :return: checks result
+    Performs checks for karma command comments.
+
+    :param comment: the command comment.
+    :param fallout76marketplace: reddit instance for subreddit.
+    :return: checks result.
     """
     # Make sure author isn't rewarding themselves
     if comment.author == comment.parent().author:
