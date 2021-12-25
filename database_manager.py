@@ -1,3 +1,4 @@
+import logging
 import re
 import sqlite3
 import time
@@ -10,6 +11,8 @@ import bot_responses
 import common_functions
 import conversation_checks
 import flair_functions
+
+db_manager_logger = logging.getLogger('main')
 
 
 def is_mod(author, fallout76marketplace) -> bool:
@@ -102,6 +105,38 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
     return conversation_checks.checks_for_karma_command(comment, fallout76marketplace)
 
 
+def insert_karma_log(db_conn, comment):
+    """
+    Inserts the karma log into the database file.
+
+    :param db_conn: Database connection object
+    :param comment: Comment which triggered the karma command
+    :return: None
+    """
+    try:
+        with closing(db_conn.cursor()) as cursor:
+            comment_dict = {'comment_id': comment.id,
+                            'comment_submission_id': comment.submission.id,
+                            'comment_submission_created_utc': comment.submission.created_utc,
+                            'comment_author_name': comment.author.name,
+                            'comment_parent_author_name': comment.parent().author.name,
+                            'comment_created_utc': comment.created_utc,
+                            'comment_permalink': comment.permalink
+                            }
+            cursor.execute("INSERT INTO comments VALUES ("
+                           ":comment_id, "
+                           ":comment_submission_id, "
+                           ":comment_submission_created_utc, "
+                           ":comment_author_name, "
+                           ":comment_parent_author_name, "
+                           ":comment_created_utc, "
+                           ":comment_permalink)", comment_dict)
+        db_conn.commit()
+        db_manager_logger.info(f"Karma logs of comment id {comment.id} inserted successfully.")
+    except sqlite3.IntegrityError:
+        raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
+
+
 def process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook):
     """
     Process the bot command for non moderator users
@@ -115,27 +150,7 @@ def process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_con
     if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
         output = karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
         if output is CONSTANTS.KARMA_CHECKS_PASSED:
-            try:
-                with closing(db_conn.cursor()) as cursor:
-                    comment_dict = {'comment_id': comment.id,
-                                    'comment_submission_id': comment.submission.id,
-                                    'comment_submission_created_utc': comment.submission.created_utc,
-                                    'comment_author_name': comment.author.name,
-                                    'comment_parent_author_name': comment.parent().author.name,
-                                    'comment_created_utc': comment.created_utc,
-                                    'comment_permalink': comment.permalink
-                                    }
-                    cursor.execute("INSERT INTO comments VALUES ("
-                                   ":comment_id, "
-                                   ":comment_submission_id, "
-                                   ":comment_submission_created_utc, "
-                                   ":comment_author_name, "
-                                   ":comment_parent_author_name, "
-                                   ":comment_created_utc, "
-                                   ":comment_permalink)", comment_dict)
-                db_conn.commit()
-            except sqlite3.IntegrityError:
-                raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
+            insert_karma_log(db_conn, comment)
             # increment the karma in flair
             flair_functions.increment_karma(comment, fallout76marketplace)
             # reply to user
@@ -167,34 +182,17 @@ def load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_w
         # Mods commands will be executed without checks
         # Increase Karma
         if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
+            db_manager_logger.info(f"Received karma plus comment (id={comment.id}) from u/{comment.author.name}.")
             flair_functions.increment_karma(comment, fallout76marketplace)
-            try:
-                with closing(db_conn.cursor()) as cursor:
-                    comment_dict = {'comment_id': comment.id,
-                                    'comment_submission_id': comment.submission.id,
-                                    'comment_submission_created_utc': comment.submission.created_utc,
-                                    'comment_author_name': comment.author.name,
-                                    'comment_parent_author_name': comment.parent().author.name,
-                                    'comment_created_utc': comment.created_utc,
-                                    'comment_permalink': comment.permalink
-                                    }
-                    cursor.execute("INSERT INTO comments VALUES ("
-                                   ":comment_id, "
-                                   ":comment_submission_id, "
-                                   ":comment_submission_created_utc, "
-                                   ":comment_author_name, "
-                                   ":comment_parent_author_name, "
-                                   ":comment_created_utc, "
-                                   ":comment_permalink)", comment_dict)
-                db_conn.commit()
-            except sqlite3.IntegrityError:
-                raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
+            insert_karma_log(db_conn, comment)
             bot_responses.karma_rewarded_comment(comment)
         # Decrease Karma
         elif re.search(CONSTANTS.KARMA_MM, comment_body, re.IGNORECASE):
+            db_manager_logger.info(f"Received karma minus comment (id={comment.id}) from u/{comment.author.name}.")
             flair_functions.decrement_karma(comment, fallout76marketplace)
             bot_responses.karma_subtract_comment(comment)
         # Close Submission
         elif re.search(CONSTANTS.CLOSE, comment_body, re.IGNORECASE):
+            db_manager_logger.info(f"Received close comment (id={comment.id}) from u/{comment.author.name}.")
             flair_functions.close_post_trade(comment)
             bot_responses.close_submission_comment(comment.submission)
