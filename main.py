@@ -135,7 +135,6 @@ def delete_old_records():
                 cursor.execute(f"DELETE FROM comments WHERE submission_created_utc <= '{unix_time_six_months_ago}'")
                 root_logger.info(f"Deleted {cursor.rowcount} rows from the database.")
             db_conn.commit()
-    root_logger.info("Old data deleted.")
 
 
 def database_thread():
@@ -190,7 +189,7 @@ def main():
         # run the threads
         comment_listener_thread.start()
         database_manager_thread.start()
-        root_logger.info("Bot is now live.")
+        root_logger.info("Fallout 76 Marketplace Karma Bot is now live.")
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
