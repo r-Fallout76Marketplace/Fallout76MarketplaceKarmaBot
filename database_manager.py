@@ -54,7 +54,7 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
     # Checks if we have the submission in database otherwise assumes that the flair was changed
     submission = comment.submission
     if not common_functions.flair_checks(comment):
-        db_manager_logger.info("Flair checks flair for the karma command.")
+        db_manager_logger.info(f"Ignoring the submission ({comment.submission.id}) with incorrect flair type for karma command.")
         bot_responses.karma_trading_posts_only(comment)
         return CONSTANTS.INCORRECT_SUBMISSION_TYPE
 
