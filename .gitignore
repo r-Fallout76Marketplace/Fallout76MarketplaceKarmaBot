@@ -5,6 +5,4 @@ karma_logs.db
 submission_logs.db
 karma_logs.db-journal
 config.yaml
-karma_bot
-karma_bot.pub
 /logs

@@ -4,6 +4,17 @@ import common_functions
 import flair_functions
 
 
+def is_removed_or_deleted(content) -> bool:
+    """
+    Checks if comment, parent comment or submission has been removed/deleted. If it is deleted, the author is None.
+    If it is removed, the removed_by will have moderator name.
+
+    :param content: Reddit comment or submission
+    :return: True if the items is deleted or removed. Otherwise, False.
+    """
+    return content.author is None or content.mod_note or content.removed
+
+
 def checks_for_close_command(comment):
     """
     # Performs checks if the submission can be closed.
@@ -36,7 +47,8 @@ def checks_for_karma_command(comment, fallout76marketplace):
     if comment.author == comment.parent().author:
         bot_responses.cannot_reward_yourself_comment(comment)
         return CONSTANTS.CANNOT_REWARD_YOURSELF
-    comment_thread = []  # Stores all comments in a array
+
+    comment_thread = []  # Stores all comments in an array
     users_involved = set()  # Stores all the users involved
     comment_thread.append(comment)
     users_involved.add(comment.author)
@@ -55,8 +67,13 @@ def checks_for_karma_command(comment, fallout76marketplace):
         if flair_functions.is_mod_or_courier(user, fallout76marketplace):
             users_involved.remove(user)
 
-    # If comment itself or the submission has been removed/deleted
-    if comment.removed or comment_thread[-1].removed or comment_thread[-1].author is None:
+    # If the conversation is shorter than two comments
+    if len(comment_thread) <= 2:
+        bot_responses.conversation_not_long_enough(comment)
+        return CONSTANTS.CONVERSATION_NOT_LONG_ENOUGH
+
+    removed_or_deleted = any([is_removed_or_deleted(content) for content in comment_thread])
+    if removed_or_deleted:
         bot_responses.deleted_or_removed(comment)
         return CONSTANTS.DELETED_OR_REMOVED
 
@@ -64,11 +81,6 @@ def checks_for_karma_command(comment, fallout76marketplace):
     if len(users_involved) > 2:
         bot_responses.more_than_two_users_involved(comment)
         return CONSTANTS.MORE_THAN_TWO_USERS
-
-    # If the conversation is shorter than two comments
-    if len(comment_thread) <= 2:
-        bot_responses.conversation_not_long_enough(comment)
-        return CONSTANTS.CONVERSATION_NOT_LONG_ENOUGH
 
     # If all checks pass
     return CONSTANTS.KARMA_CHECKS_PASSED

@@ -58,12 +58,6 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
         bot_responses.karma_trading_posts_only(comment)
         return CONSTANTS.INCORRECT_SUBMISSION_TYPE
 
-    # User tries to give karma to deleted parent obj
-    if comment.parent().author is None:
-        db_manager_logger.info("Parent comment deleted therefore karma cannot be given.")
-        bot_responses.deleted_or_removed(comment)
-        return CONSTANTS.DELETED_OR_REMOVED
-
     with closing(db_conn.cursor()) as cursor:
         # Checks in karma logs to see if user has already rewarded the user
         cursor.execute(f"""SELECT * FROM comments WHERE submission_id='{submission.id}' AND from_author_name='{comment.author.name}' 

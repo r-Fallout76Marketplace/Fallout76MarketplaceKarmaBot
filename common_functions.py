@@ -18,7 +18,7 @@ def flair_checks(comment_or_submission) -> bool:
         submission = comment_or_submission
     else:
         submission = comment_or_submission.submission
-    submission_flair_text = submission.link_flair_text
+    submission_flair_text = '' if submission.link_flair_text is None else submission.link_flair_text
     match = re.match(regex, submission_flair_text)
     # If No match found match is None
     if match is None:
