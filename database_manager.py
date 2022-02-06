@@ -8,35 +8,32 @@ import requests
 
 import CONSTANTS
 import bot_responses
-import common_functions
 import conversation_checks
 import flair_functions
+from common_functions import get_subreddit_instance, flair_checks, send_message_to_discord
 
 db_manager_logger = logging.getLogger('main')
 
 
-def is_mod(author, fallout76marketplace) -> bool:
+def is_mod(author) -> bool:
     """
     Checks if the author is moderator or not
-    :param fallout76marketplace: The subreddit instance in which the moderators list is checked
+
     :param author: The reddit instance which will be checked in the list of mods
     :return: True if author is moderator otherwise False
     """
-    moderators_list = fallout76marketplace.moderator()
+    moderators_list = get_subreddit_instance("Fallout76Marketplace").moderator()
     if author in moderators_list:
         return True
     else:
         return False
 
 
-def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook) -> int:
+def karma_plus_command_non_mod_users(comment, db_conn) -> int:
     """
     Performs checks necessary to give karma to another user
-    :param mod_channel_webhook: Discord mod channel webhook
     :param comment: The comment object that needs to be checked
     :param db_conn: The db connection to SQL database
-    :param fallout76marketplace: The subreddit instance in which the commands are being checked
-    :param legacy76: The subreddit instance in which the stats are published if karma limit is reached
     :return: returns the int value based on checks
 
     **PASS CODES**
@@ -53,7 +50,7 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
     """
     # Checks if we have the submission in database otherwise assumes that the flair was changed
     submission = comment.submission
-    if not common_functions.flair_checks(comment):
+    if not flair_checks(comment):
         db_manager_logger.info(f"Ignoring the submission ({comment.submission.id}) with incorrect flair type for karma command.")
         bot_responses.karma_trading_posts_only(comment)
         return CONSTANTS.INCORRECT_SUBMISSION_TYPE
@@ -80,16 +77,15 @@ def karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db
 
         if len(result) >= 10:
             db_manager_logger.info(f"u/{comment.author.name} have reached their awarder karma limit.")
-            link = bot_responses.karma_reward_limit_reached(comment, result, legacy76)
+            link = bot_responses.karma_reward_limit_reached(comment, result)
             try:
-                common_functions.send_message_to_discord(mod_channel_webhook, f"{comment.author.name} has reached awarder karma limit. "
-                                                                              f"Link to their awarder logs {link}")
-            except requests.exceptions.HTTPError as http_err:
-                db_manager_logger.warning(f"Message sending to Discord failed. {http_err}.")
+                send_message_to_discord("mod_channel", f"{comment.author.name} has reached awarder karma limit. Link to their awarder logs {link}")
+            except requests.exceptions.HTTPError:
+                db_manager_logger.warning(f"Message sending to Discord failed.", exc_info=True)
             return CONSTANTS.KARMA_AWARDING_LIMIT_REACHED
 
     # checks rest of the conversation rules
-    conv_check_result = conversation_checks.checks_for_karma_command(comment, fallout76marketplace)
+    conv_check_result = conversation_checks.checks_for_karma_command(comment)
     db_manager_logger.info(f"Result for the conversation check {conv_check_result}")
     return conv_check_result
 
@@ -126,23 +122,21 @@ def insert_karma_log(db_conn, comment):
         raise sqlite3.IntegrityError("Duplicate comment was received! {}".format(comment.permalink))
 
 
-def process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook):
+def process_command_non_mod_user(comment, db_conn):
     """
     Process the bot command for non moderator users
-    :param mod_channel_webhook: Discord mod channel webhook
+
     :param comment: The comment object that needs to be checked
     :param db_conn: The db connection to SQL database
-    :param fallout76marketplace: The subreddit instance in which the commands are being checked
-    :param legacy76: The subreddit instance in which the stats are published if karma limit is reached
     """
     comment_body = comment.body.strip().replace("\\", "")
     if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
         db_manager_logger.info(f"Received karma plus comment (id={comment.id}) from u/{comment.author.name}.")
-        output = karma_plus_command_non_mod_users(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+        output = karma_plus_command_non_mod_users(comment, db_conn)
         if output is CONSTANTS.KARMA_CHECKS_PASSED:
             insert_karma_log(db_conn, comment)
             # increment the karma in flair
-            flair_functions.increment_karma(comment, fallout76marketplace)
+            flair_functions.increment_karma(comment)
             # reply to user
             bot_responses.karma_rewarded_comment(comment)
     # If comment says Karma--
@@ -155,33 +149,31 @@ def process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_con
         conversation_checks.checks_for_close_command(comment)
 
 
-def load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook):
+def load_comment(comment, db_conn):
     """
-    Loads the comment and if it a command, it executes the respective function
-    :param mod_channel_webhook: Discord mod channel webhook
+    Loads the comment and if it is a command, it executes the respective function
+
     :param comment: The comment object that needs to be checked
     :param db_conn: The db connection to SQL database
-    :param fallout76marketplace: The subreddit instance in which the commands are being checked
-    :param legacy76: The subreddit instance in which the stats are published if karma limit is reached
     """
     if comment.author.name == "AutoModerator":
         return None
     # If comment author is not mod
-    if not is_mod(comment.author, fallout76marketplace):
-        process_command_non_mod_user(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+    if not is_mod(comment.author):
+        process_command_non_mod_user(comment, db_conn)
     else:
         comment_body = comment.body.strip().replace("\\", "")
         # Mods commands will be executed without checks
         # Increase Karma
         if re.search(CONSTANTS.KARMA_PP, comment_body, re.IGNORECASE):
             db_manager_logger.info(f"Received karma plus comment (id={comment.id}) from u/{comment.author.name}.")
-            flair_functions.increment_karma(comment, fallout76marketplace)
+            flair_functions.increment_karma(comment)
             insert_karma_log(db_conn, comment)
             bot_responses.karma_rewarded_comment(comment)
         # Decrease Karma
         elif re.search(CONSTANTS.KARMA_MM, comment_body, re.IGNORECASE):
             db_manager_logger.info(f"Received karma minus comment (id={comment.id}) from u/{comment.author.name}.")
-            flair_functions.decrement_karma(comment, fallout76marketplace)
+            flair_functions.decrement_karma(comment)
             bot_responses.karma_subtract_comment(comment)
         # Close Submission
         elif re.search(CONSTANTS.CLOSE, comment_body, re.IGNORECASE):

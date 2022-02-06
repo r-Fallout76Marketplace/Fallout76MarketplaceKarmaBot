@@ -4,6 +4,7 @@ import praw
 import prawcore
 
 import CONSTANTS
+from common_functions import get_subreddit_instance
 
 response_logger = logging.getLogger('main')
 
@@ -118,13 +119,12 @@ def already_rewarded_comment(comment, permalink):
     reply(comment, comment_body)
 
 
-def karma_reward_limit_reached(comment, karma_logs, legacy76):
+def karma_reward_limit_reached(comment, karma_logs):
     """
     Comment reply if the user has reached their karma limit.
 
     :param comment: The comment that triggered the command.
     :param karma_logs: The user's karma logs for the day.
-    :param legacy76: Subreddit instance where the karma log summary will be posted.
     :return: None
     """
     comment_body = f"Hi u/{comment.author.name}! You have reached the karma reward limit. You will not be able to reward karma until next " \
@@ -134,6 +134,7 @@ def karma_reward_limit_reached(comment, karma_logs, legacy76):
     self_text = ""
     for log in karma_logs:
         self_text += f"Awarded to user u/{log[4]}: [Link to the comment](https://www.reddit.com{log[6]})\n\n"
+    legacy76 = get_subreddit_instance("legacy76")
     submission = legacy76.submit(title=title, selftext=self_text, flair_id=CONSTANTS.AWARDER_KARMA_LIMIT_REACHED)
     return f"https://www.reddit.com{submission.permalink}"
 

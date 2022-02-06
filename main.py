@@ -7,14 +7,12 @@ from contextlib import closing
 from functools import wraps
 from threading import Thread, Lock
 
-import praw
 import prawcore
 import requests
 import schedule
-import yaml
 
-import common_functions
 import database_manager
+from common_functions import get_reddit_instance, send_message_to_discord, get_bot_config
 
 
 def post_to_pastebin(title, body):
@@ -24,6 +22,7 @@ def post_to_pastebin(title, body):
     :param body: Body of Paste
     :return: url of Paste
     """
+    bot_config = get_bot_config()
     login_data = {
         'api_dev_key': bot_config['pastebin_credentials']['api_key'],
         'api_user_name': bot_config['pastebin_credentials']['username'],
@@ -63,7 +62,7 @@ def catch_exceptions():
                     root_logger.info("Uploading the stack track to pastebin.")
                     url = post_to_pastebin(f"{type(exp).__name__}: {exp}", traceback.format_exc())
                     root_logger.info("Sending the pastebin url to discord via webhook.")
-                    common_functions.send_message_to_discord(bot_config['discord_webhooks']['err_channel'], f"[{type(exp).__name__}: {exp}]({url})")
+                    send_message_to_discord("err_channel", f"[{type(exp).__name__}: {exp}]({url})")
                 except Exception:
                     root_logger.error(f"Error sending message to discord", exc_info=True)
 
@@ -83,10 +82,7 @@ def catch_exceptions():
 
 @catch_exceptions()
 def comment_listener(*args, **kwargs):
-    fallout76marketplace = args[0]
-    legacy76 = args[1]
-    db_conn = args[2]
-    mod_channel_webhook = bot_config['discord_webhooks']['mod_channel']
+    db_conn = args[0]
     comment_stream = kwargs['comment_stream']
 
     # Gets a continuous stream of comments
@@ -95,7 +91,7 @@ def comment_listener(*args, **kwargs):
             break
         mutex = Lock()
         with mutex:
-            database_manager.load_comment(comment, fallout76marketplace, legacy76, db_conn, mod_channel_webhook)
+            database_manager.load_comment(comment, db_conn)
 
 
 def listener_thread(*args):
@@ -149,19 +145,6 @@ def database_thread():
 
 def main():
     global run_threads
-    global bot_config
-
-    with open('config.yaml') as stream:
-        bot_config = yaml.safe_load(stream)
-        root_logger.info("Loaded the bot config file.")
-
-    # Logging into Reddit
-    reddit = praw.Reddit(client_id=bot_config['reddit_credentials']['client_id'],
-                         client_secret=bot_config['reddit_credentials']['client_secret'],
-                         username=bot_config['reddit_credentials']['username'],
-                         password=bot_config['reddit_credentials']['password'],
-                         user_agent=bot_config['reddit_credentials']['user_agent'])
-    root_logger.info(f"Logged into Reddit as u/{reddit.user.me()}.")
 
     db_conn = sqlite3.connect('karma_logs.db', check_same_thread=False)
     # create table in karma logs db if it doesn't exist
@@ -179,10 +162,11 @@ def main():
     db_conn.commit()
     root_logger.info("Established link to database file karma_logs.db.")
 
-    fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
-    legacy76 = reddit.subreddit("legacy76")
+    reddit = get_reddit_instance()
+    root_logger.info(f"Logged into Reddit as u/{reddit.user.me()}.")
+
     # Create threads
-    comment_listener_thread = Thread(target=listener_thread, args=(fallout76marketplace, legacy76, db_conn, None))
+    comment_listener_thread = Thread(target=listener_thread, args=(db_conn,))
     database_manager_thread = Thread(target=database_thread)
     try:
         # run the threads
@@ -190,8 +174,9 @@ def main():
         database_manager_thread.start()
         root_logger.info("Fallout 76 Marketplace Karma Bot is now live.")
         while True:
-            root_logger.info("Idle Thread Running.")
-            time.sleep(300)
+            root_logger.info(f"{comment_listener_thread.name}: {comment_listener_thread.is_alive()}\n"
+                             f"{database_manager_thread.name}: {database_manager_thread.is_alive()}")
+            time.sleep(30 * 60)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
         schedule.run_all()
@@ -207,7 +192,6 @@ def main():
 if __name__ == '__main__':
     run_threads = True
     failed_attempt = 1
-    bot_config = {}
 
     # Setting up Logging
     if not os.path.exists("logs"):
