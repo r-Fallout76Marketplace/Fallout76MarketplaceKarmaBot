@@ -191,7 +191,7 @@ def main():
         root_logger.info("Fallout 76 Marketplace Karma Bot is now live.")
         while True:
             root_logger.info("Idle Thread Running.")
-            time.sleep(1)
+            time.sleep(300)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
         schedule.run_all()
