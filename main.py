@@ -67,8 +67,9 @@ def catch_exceptions():
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                    root_logger.warning(f"Waiting {600 / 60} minutes...")
-                    time.sleep(300)
+                    sleep_time = 600 / 60
+                    root_logger.warning(f"Waiting {sleep_time} minutes...")
+                    time.sleep(sleep_time)
 
                     if job_func.__name__ == 'comment_listener':
                         raise StopIteration("Reinitialize comment generator.")
