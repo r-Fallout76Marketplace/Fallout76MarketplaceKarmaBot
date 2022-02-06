@@ -58,15 +58,14 @@ def catch_exceptions():
                 job_func(*args, **kwargs)
                 failed_attempt = 1
             except Exception as exp:
-                tb = traceback.format_exc()
-                root_logger.error(tb)
+                root_logger.error("Something went wrong", exc_info=True)
                 try:
                     root_logger.info("Uploading the stack track to pastebin.")
-                    url = post_to_pastebin(f"{type(exp).__name__}: {exp}", tb)
+                    url = post_to_pastebin(f"{type(exp).__name__}: {exp}", traceback.format_exc())
                     root_logger.info("Sending the pastebin url to discord via webhook.")
                     common_functions.send_message_to_discord(bot_config['discord_webhooks']['err_channel'], f"[{type(exp).__name__}: {exp}]({url})")
-                except Exception as discord_exception:
-                    root_logger.error(f"Error sending message to discord {discord_exception}")
+                except Exception:
+                    root_logger.error(f"Error sending message to discord", exc_info=True)
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
@@ -191,6 +190,7 @@ def main():
         database_manager_thread.start()
         root_logger.info("Fallout 76 Marketplace Karma Bot is now live.")
         while True:
+            root_logger.info("Idle Thread Running.")
             time.sleep(1)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
