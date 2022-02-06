@@ -35,12 +35,11 @@ def checks_for_close_command(comment):
         bot_responses.close_submission_failed(comment, True)
 
 
-def checks_for_karma_command(comment, fallout76marketplace):
+def checks_for_karma_command(comment):
     """
     Performs checks for karma command comments.
 
     :param comment: the command comment.
-    :param fallout76marketplace: reddit instance for subreddit.
     :return: checks result.
     """
     # Make sure author isn't rewarding themselves
@@ -64,7 +63,7 @@ def checks_for_karma_command(comment, fallout76marketplace):
 
     # Remove mods and couriers from the users involved
     for user in users_involved.copy():
-        if flair_functions.is_mod_or_courier(user, fallout76marketplace):
+        if flair_functions.is_mod_or_courier(user):
             users_involved.remove(user)
 
     # If the conversation is shorter than two comments
