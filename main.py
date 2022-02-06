@@ -10,9 +10,10 @@ from threading import Thread, Lock
 import prawcore
 import requests
 import schedule
+from praw.exceptions import RedditAPIException
 
 import database_manager
-from common_functions import get_reddit_instance, send_message_to_discord, get_bot_config
+from common_functions import get_reddit_instance, send_message_to_discord, get_bot_config, get_subreddit_instance
 
 
 def post_to_pastebin(title, body):
@@ -52,25 +53,22 @@ def catch_exceptions():
     def catch_exceptions_decorator(job_func):
         @wraps(job_func)
         def wrapper(*args, **kwargs):
-            global failed_attempt
             try:
                 job_func(*args, **kwargs)
-                failed_attempt = 1
-            except Exception as exp:
-                root_logger.error("Something went wrong", exc_info=True)
+            except RedditAPIException as exp:
+                root_logger.error("Something went wrong with Reddit", exc_info=True)
                 try:
                     root_logger.info("Uploading the stack track to pastebin.")
                     url = post_to_pastebin(f"{type(exp).__name__}: {exp}", traceback.format_exc())
                     root_logger.info("Sending the pastebin url to discord via webhook.")
                     send_message_to_discord("err_channel", f"[{type(exp).__name__}: {exp}]({url})")
-                except Exception:
+                except requests.exceptions.HTTPError:
                     root_logger.error(f"Error sending message to discord", exc_info=True)
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                    root_logger.warning(f"Waiting {(300 * failed_attempt) / 60} minutes...")
-                    time.sleep(300 * failed_attempt)
-                    failed_attempt += 1
+                    root_logger.warning(f"Waiting {600 / 60} minutes...")
+                    time.sleep(300)
 
                     if job_func.__name__ == 'comment_listener':
                         raise StopIteration("Reinitialize comment generator.")
@@ -101,7 +99,7 @@ def listener_thread(*args):
     """
     root_logger.info("Running the listener_thread to listen to comments stream from subreddit.")
     # Gets 100 historical comments
-    fallout76marketplace = args[0]
+    fallout76marketplace = get_subreddit_instance("Fallout76Marketplace")
     comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while run_threads:
         try:
@@ -166,16 +164,16 @@ def main():
     root_logger.info(f"Logged into Reddit as u/{reddit.user.me()}.")
 
     # Create threads
-    comment_listener_thread = Thread(target=listener_thread, args=(db_conn,))
-    database_manager_thread = Thread(target=database_thread)
+    comment_listener_thread = Thread(target=listener_thread, args=(db_conn,), name="comment_listener_thread")
+    database_manager_thread = Thread(target=database_thread, name="database_manager_thread")
     try:
         # run the threads
         comment_listener_thread.start()
         database_manager_thread.start()
         root_logger.info("Fallout 76 Marketplace Karma Bot is now live.")
         while True:
-            root_logger.info(f"{comment_listener_thread.name}: {comment_listener_thread.is_alive()}\n"
-                             f"{database_manager_thread.name}: {database_manager_thread.is_alive()}")
+            root_logger.info(f"""{comment_listener_thread.name}: {comment_listener_thread.is_alive()}
+                                                {database_manager_thread.name}: {database_manager_thread.is_alive()}""")
             time.sleep(30 * 60)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
@@ -191,7 +189,6 @@ def main():
 # Entry point
 if __name__ == '__main__':
     run_threads = True
-    failed_attempt = 1
 
     # Setting up Logging
     if not os.path.exists("logs"):
