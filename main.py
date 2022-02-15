@@ -10,7 +10,7 @@ from threading import Thread, Lock
 import prawcore
 import requests
 import schedule
-from praw.exceptions import RedditAPIException
+from requests.exceptions import RequestException
 
 import database_manager
 from common_functions import get_reddit_instance, send_message_to_discord, get_bot_config, get_subreddit_instance
@@ -55,20 +55,20 @@ def catch_exceptions():
         def wrapper(*args, **kwargs):
             try:
                 job_func(*args, **kwargs)
-            except RedditAPIException as exp:
+            except Exception as exp:
                 root_logger.error("Something went wrong with Reddit", exc_info=True)
                 try:
                     root_logger.info("Uploading the stack track to pastebin.")
                     url = post_to_pastebin(f"{type(exp).__name__}: {exp}", traceback.format_exc())
                     root_logger.info("Sending the pastebin url to discord via webhook.")
                     send_message_to_discord("err_channel", f"[{type(exp).__name__}: {exp}]({url})")
-                except requests.exceptions.HTTPError:
+                except RequestException:
                     root_logger.error(f"Error sending message to discord", exc_info=True)
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                    sleep_time = 600 / 60
-                    root_logger.warning(f"Waiting {sleep_time} minutes...")
+                    sleep_time = 5
+                    root_logger.warning(f"Waiting {sleep_time / 60} minutes...")
                     time.sleep(sleep_time)
 
         return wrapper
@@ -77,6 +77,20 @@ def catch_exceptions():
 
 
 @catch_exceptions()
+def comment_listener(*args):
+    db_conn = args[0]
+    fallout76marketplace = args[1]
+
+    # Gets a continuous stream of comments
+    for comment in fallout76marketplace.stream.comments(skip_existing=True):
+        if not run_threads:
+            break
+
+        mutex = Lock()
+        with mutex:
+            database_manager.load_comment(comment, db_conn)
+
+
 def listener_thread(*args):
     """
     Thread for comment_listner
@@ -84,13 +98,8 @@ def listener_thread(*args):
     """
     root_logger.info("Running the listener_thread to listen to comments stream from subreddit.")
     fallout76marketplace = get_subreddit_instance("Fallout76Marketplace")
-    db_conn = args[0]
     while run_threads:
-        # Gets a continuous stream of comments
-        for comment in fallout76marketplace.stream.comments(skip_existing=True):
-            mutex = Lock()
-            with mutex:
-                database_manager.load_comment(comment, db_conn)
+        comment_listener(*args, fallout76marketplace)
         root_logger.debug("listener_thread running.")
 
 
@@ -160,7 +169,7 @@ def main():
         while True:
             root_logger.info(f"""{comment_listener_thread.name}: {comment_listener_thread.is_alive()}
                                                 {database_manager_thread.name}: {database_manager_thread.is_alive()}""")
-            time.sleep(30 * 60)
+            time.sleep(1)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
         schedule.run_all()
@@ -181,4 +190,5 @@ if __name__ == '__main__':
         os.mkdir("logs")
     logging.config.fileConfig("logging.conf")
     root_logger = logging.getLogger('main')
+    root_logger.setLevel(logging.DEBUG)
     main()
