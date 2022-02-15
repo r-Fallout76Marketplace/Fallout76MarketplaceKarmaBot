@@ -71,43 +71,27 @@ def catch_exceptions():
                     root_logger.warning(f"Waiting {sleep_time} minutes...")
                     time.sleep(sleep_time)
 
-                    if job_func.__name__ == 'comment_listener':
-                        raise StopIteration("Reinitialize comment generator.")
-
         return wrapper
 
     return catch_exceptions_decorator
 
 
 @catch_exceptions()
-def comment_listener(*args, **kwargs):
-    db_conn = args[0]
-    comment_stream = kwargs['comment_stream']
-
-    # Gets a continuous stream of comments
-    for comment in comment_stream:
-        if comment is None:
-            break
-        mutex = Lock()
-        with mutex:
-            database_manager.load_comment(comment, db_conn)
-
-
 def listener_thread(*args):
     """
     Thread for comment_listner
     :param args:
     """
     root_logger.info("Running the listener_thread to listen to comments stream from subreddit.")
-    # Gets 100 historical comments
     fallout76marketplace = get_subreddit_instance("Fallout76Marketplace")
-    comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+    db_conn = args[0]
     while run_threads:
-        try:
-            comment_listener(*args, comment_stream=comment_stream)
-        except StopIteration:
-            root_logger.info("Reinitializing the comment generator.")
-            comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
+        # Gets a continuous stream of comments
+        for comment in fallout76marketplace.stream.comments(skip_existing=True):
+            mutex = Lock()
+            with mutex:
+                database_manager.load_comment(comment, db_conn)
+        root_logger.debug("listener_thread running.")
 
 
 @catch_exceptions()
@@ -139,6 +123,7 @@ def database_thread():
     schedule.every(1).weeks.do(delete_old_records)
     while run_threads:
         schedule.run_pending()
+        root_logger.debug("database_thread running.")
         time.sleep(1)
 
 
