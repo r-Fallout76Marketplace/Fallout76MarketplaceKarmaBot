@@ -67,7 +67,7 @@ def catch_exceptions():
 
                 # In case of server error pause for multiple of 5 minutes
                 if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                    sleep_time = 5
+                    sleep_time = 5 * 60
                     root_logger.warning(f"Waiting {sleep_time / 60} minutes...")
                     time.sleep(sleep_time)
 
@@ -169,7 +169,7 @@ def main():
         while True:
             root_logger.info(f"""{comment_listener_thread.name}: {comment_listener_thread.is_alive()}
                                                 {database_manager_thread.name}: {database_manager_thread.is_alive()}""")
-            time.sleep(1)
+            time.sleep(5 * 60)
     except KeyboardInterrupt:
         root_logger.info("Backing up the data...")
         schedule.run_all()
@@ -190,5 +190,4 @@ if __name__ == '__main__':
         os.mkdir("logs")
     logging.config.fileConfig("logging.conf")
     root_logger = logging.getLogger('main')
-    root_logger.setLevel(logging.DEBUG)
     main()
