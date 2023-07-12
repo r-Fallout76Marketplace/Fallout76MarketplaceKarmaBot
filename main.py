@@ -159,8 +159,8 @@ def main():
     root_logger.info(f"Logged into Reddit as u/{reddit.user.me()}.")
 
     # Create threads
-    comment_listener_thread = Thread(target=listener_thread, args=(db_conn,), name="comment_listener_thread")
-    database_manager_thread = Thread(target=database_thread, name="database_manager_thread")
+    comment_listener_thread = Thread(target=listener_thread, args=(db_conn,), name="comment_listener_thread", daemon=True)
+    database_manager_thread = Thread(target=database_thread, name="database_manager_thread", daemon=True)
     try:
         # run the threads
         comment_listener_thread.start()
