@@ -75,7 +75,7 @@ async def read_comments(reddit_instance: Reddit, karma_db: AsyncIOMotorDatabase)
         if comment.author is None:
             continue
 
-        if comment.author.name.lower() == "automoderator" or comment.author.name != "XUIDChecker":
+        if comment.author.name.lower() == "automoderator":
             continue
 
         comment_body = comment.body.strip().replace("\\", "")
