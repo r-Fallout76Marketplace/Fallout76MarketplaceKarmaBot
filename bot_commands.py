@@ -129,7 +129,7 @@ async def close_command(comment: Comment, fo76_subreddit: Subreddit) -> None:
     :returns: None
 
     """
-    is_user_mod = is_mod(comment.author, fo76_subreddit)
+    is_user_mod = await is_mod(comment.author, fo76_subreddit)
     bot_commands_logger.info(f"Received Closing command: {comment}, is_mod: {is_user_mod}")
     if not is_user_mod:
         close_checks = await checks_for_close_command(comment)
