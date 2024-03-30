@@ -25,7 +25,9 @@ class KarmaChecks(IntEnum):
 
 
 def is_removed_or_deleted(content: Comment | Submission) -> bool:
-    """Checks if comment, parent comment or submission has been removed/deleted. If it is deleted, the author is None. If it is removed, the removed_by will have moderator name.
+    """Checks if comment, parent comment or submission has been removed/deleted.
+
+    If it is deleted, the author is None. If it is removed, the removed_by will have moderator name.
 
     :param content: Reddit's comment or submission
 

@@ -7,6 +7,7 @@ docstrfmt
 motor
 motor-types
 mypy
+pyright
 python-dotenv
 ruff
 types-PyYAML

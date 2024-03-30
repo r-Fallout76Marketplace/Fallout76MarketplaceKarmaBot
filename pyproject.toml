@@ -13,6 +13,15 @@ no_implicit_reexport = true
 ignore_missing_imports = true
 exclude = [".venv", "venv"]
 
+[tool.pyright]
+exclude = [".venv", "venv"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+reportPrivateUsage = false
+reportImportCycles = false
+reportIncompatibleMethodOverride = false
+reportWildcardImportFromLibrary = false
+
 [tool.black]
 line-length = 160
 
@@ -20,4 +29,4 @@ line-length = 160
 line-length = 160
 
 [tool.ruff.lint]
-select = ["I001", "I002"]
+select = ["E", "F", "I001", "I002"]

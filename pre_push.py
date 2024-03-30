@@ -35,6 +35,7 @@ def run_static() -> bool:
     """
     success = True
     success &= do_process(["mypy", "."])
+    success &= do_process(["pyright"])
     success &= do_process(["black", "."])
     success &= do_process(["docstrfmt", "."])
     success &= do_process(["ruff", "check", ".", "--fix"])
