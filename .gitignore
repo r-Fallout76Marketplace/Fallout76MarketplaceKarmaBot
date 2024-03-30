@@ -161,3 +161,4 @@ cython_debug/
 *.db
 config.yaml
 logs/
+user_karma_combined.json

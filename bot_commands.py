@@ -65,14 +65,14 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
     :returns: None
 
     """
-    fo76_subreddit = connections.fo76_subreddit
-    is_user_mod = await is_mod(comment.author, fo76_subreddit)
+    is_user_mod = await is_mod(comment.author, connections.fo76_subreddit)
     bot_commands_logger.info(f"Received Karma command: is_mod: {is_user_mod}, karma_change: {karma_change}")
     already_rewarded_chk = (KarmaChecks.ALREADY_REWARDED, "")  # Initializing variable for later use
     if not is_user_mod:
-        karma_checks = await checks_for_karma_command(comment, fo76_subreddit)
+        karma_checks = await checks_for_karma_command(comment, connections.fo76_subreddit)
+
+        # Only worth checking if previous checks have passed
         if karma_checks == KarmaChecks.KARMA_CHECKS_PASSED:
-            # Only worth checking if previous checks have passed
             p_comment = await comment.parent()
             already_rewarded_chk = await check_already_rewarded(
                 comment.author.name,
@@ -82,6 +82,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
             )
             karma_checks = already_rewarded_chk[0]
 
+        # Only worth checking if previous checks have passed
         if karma_checks == KarmaChecks.KARMA_CHECKS_PASSED:
             daily_karma = await get_daily_given_karma(comment.author.name, connections)
             if daily_karma >= 10:
