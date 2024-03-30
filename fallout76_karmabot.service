@@ -1,0 +1,14 @@
+[Unit]
+Description=Runs KarmaBot for r/Fallout76Marketplace
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/Bots/Fallout76MarketplaceKarmaBot
+ExecStart=/root/Bots/Fallout76MarketplaceKarmaBot/main.py
+Restart=always
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
