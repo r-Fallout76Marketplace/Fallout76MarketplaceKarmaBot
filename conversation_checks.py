@@ -1,51 +1,134 @@
-import CONSTANTS
-import bot_responses
-import common_functions
-import flair_functions
+from __future__ import annotations
+
+import re
+from enum import IntEnum, auto
+
+import yaml
+from asyncpraw.models import Comment, Redditor, Submission, Subreddit
 
 
-def is_removed_or_deleted(content) -> bool:
-    """
-    Checks if comment, parent comment or submission has been removed/deleted. If it is deleted, the author is None.
-    If it is removed, the removed_by will have moderator name.
+class CloseChecks(IntEnum):
+    CLOSE_CHECKS_PASSED = auto()
+    NOT_TRADING_SUBMISSION = auto()
+    NOT_OP = auto()
 
-    :param content: Reddit comment or submission
-    :return: True if the items is deleted or removed. Otherwise, False.
+
+class KarmaChecks(IntEnum):
+    KARMA_CHECKS_PASSED = auto()
+    ALREADY_REWARDED = auto()
+    CANNOT_REWARD_YOURSELF = auto()
+    CONVERSATION_NOT_LONG_ENOUGH = auto()
+    DELETED_OR_REMOVED = auto()
+    INCORRECT_SUBMISSION_TYPE = auto()
+    KARMA_AWARDING_LIMIT_REACHED = auto()
+    MORE_THAN_TWO_USERS = auto()
+
+
+def is_removed_or_deleted(content: Comment | Submission) -> bool:
+    """Checks if comment, parent comment or submission has been removed/deleted. If it is deleted, the author is None. If it is removed, the removed_by will have moderator name.
+
+    :param content: Reddit's comment or submission
+
+    :returns: True if the items is deleted or removed. Otherwise, False.
+
     """
     return content.author is None or content.mod_note or content.removed
 
 
-def checks_for_close_command(comment):
-    """
-    # Performs checks if the submission can be closed.
+async def is_mod(user: Redditor, subreddit: Subreddit) -> bool:
+    """Checks if the author is moderator or not
 
-    :param comment: The comment object praw.
+    :param user: The Reddit user whose moderator status will be checked.
+    :param subreddit: The subreddit where the user's moderator status will be checked.
+
+    :returns: True if user is moderator otherwise False
+
+    """
+    moderators_list = await subreddit.moderator()
+    if user in moderators_list:
+        return True
+    else:
+        return False
+
+
+async def is_mod_or_courier(author: Redditor, subreddit: Subreddit) -> bool:
+    """Checks if the author is mod.
+
+    :param author: The redditor which will be checked.
+    :param subreddit: The subreddit where the user's moderator/courier status will be checked.
+
+    :returns: True if the user is courier/moderator otherwise False
+
+    """
+    if author is None:
+        return False
+
+    moderators_list = await subreddit.moderator()
+    if author in moderators_list:
+        return True
+
+    wiki = await subreddit.wiki.get_page("custom_bot_config/courier_list")
+    yaml_format = yaml.safe_load(wiki.content_md)
+    courier_list = (x.lower() for x in yaml_format["couriers"])
+    if author.name.lower() in courier_list:
+        return True
+
+    return False
+
+
+SUBMISSION_FLAIR_REGEX = re.compile("^XBOX|PlayStation|PC$", re.IGNORECASE)
+
+
+async def flair_checks(comment: Comment) -> bool:
+    """Checks if submission is eligible for trading by checking the flair.
+
+    The karma can only be exchanged under the submission with flair XBOX, PlayStation, or PC. :param comment: praw Comment that triggered the command.
+
+    """
+    submission = comment.submission
+    await submission.load()
+    submission_flair_text = "" if submission.link_flair_text is None else submission.link_flair_text
+    match = SUBMISSION_FLAIR_REGEX.match(submission_flair_text)
+    if match is None:
+        return False
+    else:
+        return True
+
+
+async def checks_for_close_command(comment: Comment) -> CloseChecks:
+    """Performs checks to determine if the submission can be closed.
+
+    :param comment: The comment object that triggered the command.
+
+    :returns: A CloseChecks enum value indicating the result of the checks.
+
     """
     # Only OP can close the trade
-    if comment.author == comment.submission.author:
-        # You can close trading posts only
-        if common_functions.flair_checks(comment):
-            flair_functions.close_post_trade(comment)
-            bot_responses.close_submission_comment(comment.submission)
-        else:
-            # If post isn't trading post
-            bot_responses.close_submission_failed(comment, False)
+    if comment.author != comment.submission.author:
+        return CloseChecks.NOT_OP
+
+    if flair_checks(comment):
+        return CloseChecks.CLOSE_CHECKS_PASSED
     else:
-        # If the close submission is requested by someone other than op
-        bot_responses.close_submission_failed(comment, True)
+        return CloseChecks.NOT_TRADING_SUBMISSION
 
 
-def checks_for_karma_command(comment):
-    """
-    Performs checks for karma command comments.
+async def checks_for_karma_command(comment: Comment, fo76_subreddit: Subreddit) -> KarmaChecks:
+    """Performs checks for karma command comments.
 
     :param comment: the command comment.
-    :return: checks result.
+    :param fo76_subreddit: SubredditHelper Subreddit object to make API calls related to subreddit.
+
+    :returns: A KarmaChecks enum value indicating the result of the checks.
+
     """
+    if not await flair_checks(comment):
+        return KarmaChecks.INCORRECT_SUBMISSION_TYPE
+
     # Make sure author isn't rewarding themselves
-    if comment.author == comment.parent().author:
-        bot_responses.cannot_reward_yourself_comment(comment)
-        return CONSTANTS.CANNOT_REWARD_YOURSELF
+    parent_post = await comment.parent()
+    if comment.author == parent_post.author:
+        return KarmaChecks.CANNOT_REWARD_YOURSELF
 
     comment_thread = []  # Stores all comments in an array
     users_involved = set()  # Stores all the users involved
@@ -54,7 +137,7 @@ def checks_for_karma_command(comment):
 
     # If the karma comment is not root meaning it ha a parent comment
     if not comment.is_root:
-        parent_comment = comment.parent()
+        parent_comment = await comment.parent()
         comment_thread.append(parent_comment)
         users_involved.add(parent_comment.author)
 
@@ -63,23 +146,20 @@ def checks_for_karma_command(comment):
 
     # Remove mods and couriers from the users involved
     for user in users_involved.copy():
-        if flair_functions.is_mod_or_courier(user):
+        if await is_mod_or_courier(user, fo76_subreddit):
             users_involved.remove(user)
 
     # If the conversation is shorter than two comments
     if len(comment_thread) <= 2:
-        bot_responses.conversation_not_long_enough(comment)
-        return CONSTANTS.CONVERSATION_NOT_LONG_ENOUGH
+        return KarmaChecks.CONVERSATION_NOT_LONG_ENOUGH
 
     removed_or_deleted = any([is_removed_or_deleted(content) for content in comment_thread])
     if removed_or_deleted:
-        bot_responses.deleted_or_removed(comment)
-        return CONSTANTS.DELETED_OR_REMOVED
+        return KarmaChecks.DELETED_OR_REMOVED
 
     # If there are more than two people involved
     if len(users_involved) > 2:
-        bot_responses.more_than_two_users_involved(comment)
-        return CONSTANTS.MORE_THAN_TWO_USERS
+        return KarmaChecks.MORE_THAN_TWO_USERS
 
     # If all checks pass
-    return CONSTANTS.KARMA_CHECKS_PASSED
+    return KarmaChecks.KARMA_CHECKS_PASSED
