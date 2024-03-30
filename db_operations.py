@@ -37,8 +37,9 @@ async def find_or_create_user_profile(reddit_username: str, users_collection: As
             {"reddit_username": reddit_username},
             {
                 "$setOnInsert": {
-                    "karma": 0,
                     "gamertags": [],
+                    "karma": 0,
+                    "m76_karma": 0,
                 },
             },
             upsert=True,
