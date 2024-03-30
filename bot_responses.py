@@ -31,6 +31,7 @@ async def karma_rewarded_comment(comment: Comment) -> None:
 
     """
     p_comment = await comment.parent()
+    await p_comment.load()
     comment_body = (
         f"Hi u/{comment.author.name}! You have successfully rewarded u/{p_comment.author.name} with one karma point! Please note that karma may take "
         f"sometime to update."
@@ -125,6 +126,7 @@ async def already_rewarded_comment(comment: Comment, permalink: str) -> None:
 
     """
     p_comment = await comment.parent()
+    await p_comment.load()
     comment_body = f"Hi u/{comment.author.name}! You have already rewarded {p_comment.author.name} in this submission. " f"See [here]({permalink})"
     await reply(comment, comment_body)
 
@@ -168,6 +170,7 @@ async def karma_subtract_comment(comment: Comment) -> None:
 
     """
     p_comment = await comment.parent()
+    await p_comment.load()
     comment_body = f"{p_comment.author.name}'s karma has been decremented by one. Please note that karma may take some time to update."
     await reply(comment, comment_body)
 

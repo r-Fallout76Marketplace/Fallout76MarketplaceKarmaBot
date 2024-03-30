@@ -74,6 +74,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
         # Only worth checking if previous checks have passed
         if karma_checks == KarmaChecks.KARMA_CHECKS_PASSED:
             p_comment = await comment.parent()
+            await p_comment.load()
             already_rewarded_chk = await check_already_rewarded(
                 comment.author.name,
                 p_comment.author.name,
