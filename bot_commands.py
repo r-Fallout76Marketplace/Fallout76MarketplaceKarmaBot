@@ -94,6 +94,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
     match karma_checks:
         case KarmaChecks.KARMA_CHECKS_PASSED:
             p_comment = await comment.parent()
+            await p_comment.load()
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(update_karma_logs(comment.author.name, p_comment.author.name, comment, connections))
                 tg.create_task(update_karma(p_comment, karma_change, connections))
