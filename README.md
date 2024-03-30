@@ -6,8 +6,5 @@ the subreddit own karma system to keep track of how many times a user has traded
 ### Features:
 
 - Flair color changes based on karma level
-- Locks and closes submissions after 1 week
 - Users can give a limited amount of karma determined by their karma level
-- Submits daily karma logs to a subreddit in the form of submission
-- uses multithreading and multiple praw instances to reduce the dropped requests
 - Many security and bug fixes
