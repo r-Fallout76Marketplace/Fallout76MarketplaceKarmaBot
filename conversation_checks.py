@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from enum import IntEnum, auto
+from typing import Optional
 
 import yaml
 from asyncpraw.models import Comment, Redditor, Submission, Subreddit
@@ -53,7 +54,7 @@ async def is_mod(user: Redditor, subreddit: Subreddit) -> bool:
         return False
 
 
-async def is_mod_or_courier(author: Redditor, subreddit: Subreddit) -> bool:
+async def is_mod_or_courier(author: Optional[Redditor], subreddit: Subreddit) -> bool:
     """Checks if the author is mod.
 
     :param author: The redditor which will be checked.
@@ -108,12 +109,12 @@ async def checks_for_close_command(comment: Comment) -> CloseChecks:
     await comment.load()
     submission = comment.submission
     await submission.load()
-    
+
     # Only OP can close the trade
     if comment.author != submission.author:
         return CloseChecks.NOT_OP
 
-    if flair_checks(comment):
+    if await flair_checks(comment):
         return CloseChecks.CLOSE_CHECKS_PASSED
     else:
         return CloseChecks.NOT_TRADING_SUBMISSION
