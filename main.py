@@ -61,7 +61,7 @@ CLOSE = re.compile(r"^(!CLOSE|CLOSE!)", re.IGNORECASE)
 async def read_comments(reddit_instance: Reddit, karma_db: AsyncIOMotorDatabase) -> None:
     """Checks comments as they come on r/Fallout76MarketPlace and performs actions accordingly.
 
-    :param reddit_instance: The Reddit Instance from AsyncPraw. Used to make API calls.
+    :param reddit_instance: The Reddit Instance from AsyncPRAW. Used to make API calls.
     :param karma_db: MongoDB database used to get the collections
 
     :returns: Nothing is returned
