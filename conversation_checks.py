@@ -106,8 +106,11 @@ async def checks_for_close_command(comment: Comment) -> CloseChecks:
 
     """
     await comment.load()
+    submission = comment.submission
+    await submission.load()
+    
     # Only OP can close the trade
-    if comment.author != comment.submission.author:
+    if comment.author != submission.author:
         return CloseChecks.NOT_OP
 
     if flair_checks(comment):
