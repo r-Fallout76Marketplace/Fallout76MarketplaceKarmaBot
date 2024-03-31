@@ -66,7 +66,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
 
     """
     is_user_mod = await is_mod(comment.author, connections.fo76_subreddit)
-    bot_commands_logger.info(f"Received Karma command: is_mod: {is_user_mod}, karma_change: {karma_change}")
+    bot_commands_logger.info(f"{'+karma' if karma_change == 1 else '-karma'}: from u/{comment.author.name}, {is_user_mod = }, {comment.permalink}")
     already_rewarded_chk = (KarmaChecks.ALREADY_REWARDED, "")  # Initializing variable for later use
     if not is_user_mod:
         karma_checks = await checks_for_karma_command(comment, connections.fo76_subreddit)

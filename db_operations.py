@@ -104,5 +104,5 @@ async def get_daily_given_karma(from_user: str, connections: Connections) -> int
     karma_logs_collection = await get_mongo_collection(collection_name="karma_logs", fallout76marketplace_karma_db=connections.karma_db)
     next_midnight = next_midnight_timestamp()
     count = await karma_logs_collection.count_documents({"from_user": from_user, "utc_created": {"$lt": next_midnight, "$gt": next_midnight - 86400}})
-    db_operations_logs.info(f"{from_user} gave {count} karma.")
+    db_operations_logs.info(f"{from_user} gave {count} karma in past 24 hours.")
     return count

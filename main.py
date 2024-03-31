@@ -80,13 +80,10 @@ async def read_comments(reddit_instance: Reddit, karma_db: AsyncIOMotorDatabase)
 
         comment_body = comment.body.strip().replace("\\", "")
         if KARMA_PP.search(comment_body):
-            main_logger.info(f"Received karma plus comment (id={comment.id}) from u/{comment.author.name}.")
             await karma_command(comment, 1, conn)
         elif KARMA_MM.search(comment_body):
-            main_logger.info(f"Received karma minus comment (id={comment.id}) from u/{comment.author.name}.")
             await karma_command(comment, -1, conn)
         elif CLOSE.search(comment_body):
-            main_logger.info(f"Received close comment (id={comment.id}) from u/{comment.author.name}.")
             await close_command(comment, fo76_subreddit)
 
 
