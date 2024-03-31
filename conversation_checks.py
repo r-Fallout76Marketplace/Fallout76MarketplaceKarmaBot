@@ -105,6 +105,7 @@ async def checks_for_close_command(comment: Comment) -> CloseChecks:
     :returns: A CloseChecks enum value indicating the result of the checks.
 
     """
+    await comment.load()
     # Only OP can close the trade
     if comment.author != comment.submission.author:
         return CloseChecks.NOT_OP
@@ -129,6 +130,7 @@ async def checks_for_karma_command(comment: Comment, fo76_subreddit: Subreddit) 
 
     # Make sure author isn't rewarding themselves
     parent_post = await comment.parent()
+    await parent_post.load()
     if comment.author == parent_post.author:
         return KarmaChecks.CANNOT_REWARD_YOURSELF
 
