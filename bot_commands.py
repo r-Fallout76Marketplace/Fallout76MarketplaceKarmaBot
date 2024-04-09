@@ -36,10 +36,7 @@ async def update_karma(parent_post: Comment | Submission, karma_change: int, con
     profile = await find_or_create_user_profile(parent_post.author.name, users_collection)
     profile = cast(dict[str, Any], profile)
     bot_commands_logger.info(f"Karma before {profile['reddit_username']}: {profile['karma']}")
-    if karma_change == 1:
-        profile["karma"] += karma_change
-    else:
-        profile["karma"] -= karma_change
+    profile["karma"] += karma_change
     update_task = asyncio.ensure_future(users_collection.update_one({"reddit_username": parent_post.author.name}, {"$set": {"karma": profile["karma"]}}))
 
     # Reconstructing user flair from their profile on db
@@ -66,7 +63,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
 
     """
     is_user_mod = await is_mod(comment.author, connections.fo76_subreddit)
-    bot_commands_logger.info(f"{'+karma' if karma_change == 1 else '-karma'}: from u/{comment.author.name}, {is_user_mod = }, {comment.permalink}")
+    bot_commands_logger.info(f"{'+karma' if karma_change == 1 else '-karma'}: from u/{comment.author.name}, {is_user_mod = }, {comment.id}")
     already_rewarded_chk = (KarmaChecks.ALREADY_REWARDED, "")  # Initializing variable for later use
     if not is_user_mod:
         karma_checks = await checks_for_karma_command(comment, connections.fo76_subreddit)
@@ -99,7 +96,10 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(update_karma_logs(comment.author.name, p_comment.author.name, comment, connections))
                 tg.create_task(update_karma(p_comment, karma_change, connections))
-                tg.create_task(bot_responses.karma_rewarded_comment(comment))
+                if karma_change == 1:
+                    tg.create_task(bot_responses.karma_rewarded_comment(comment))
+                else:
+                    tg.create_task(bot_responses.karma_subtract_comment(comment))
         case KarmaChecks.ALREADY_REWARDED:
             await bot_responses.already_rewarded_comment(comment, permalink=already_rewarded_chk[1])
         case KarmaChecks.CANNOT_REWARD_YOURSELF:
