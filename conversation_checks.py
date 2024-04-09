@@ -146,6 +146,7 @@ async def checks_for_karma_command(comment: Comment, fo76_subreddit: Subreddit) 
     # If the karma comment is not root meaning it ha a parent comment
     if not comment.is_root:
         parent_comment = await comment.parent()
+        await parent_comment.load()
         comment_thread.append(parent_comment)
         users_involved.add(parent_comment.author)
 
