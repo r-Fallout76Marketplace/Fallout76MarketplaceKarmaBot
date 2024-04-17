@@ -6,7 +6,7 @@ from typing import Any, Literal, TypedDict, cast
 from asyncpraw.models import Comment, Submission, Subreddit
 
 import bot_responses
-from conversation_checks import CloseChecks, KarmaChecks, checks_for_close_command, checks_for_karma_command, is_mod
+from conversation_checks import CloseChecks, KarmaChecks, checks_for_close_command, checks_for_karma_command, is_courier, is_mod
 from db_operations import check_already_rewarded, find_or_create_user_profile, get_daily_given_karma, get_mongo_collection, update_karma_logs
 from flair_functions import close_post_trade, update_flair
 from utils import Connections, create_logger
@@ -42,7 +42,8 @@ async def update_karma(parent_post: Comment | Submission, karma_change: int, con
     # Reconstructing user flair from their profile on db
     gamertags: list[GamerTag] = profile["gamertags"]
     platforms_emojis = {f":{gamertag['platform'].lower()}:" for gamertag in gamertags}
-    user_flair = f"{' '.join(platforms_emojis).strip()} Karma: {profile['karma'] + profile['m76_karma']}"
+    flair_label = "Courier" if await is_courier(parent_post.author, connections.fo76_subreddit) else "Karma"
+    user_flair = f"{' '.join(platforms_emojis).strip()} {flair_label}: {profile['karma'] + profile['m76_karma']}"
     await update_flair(parent_post=parent_post, user_flair=user_flair, karma=profile["karma"], connections=connections)
 
     await update_task

@@ -39,44 +39,46 @@ def is_removed_or_deleted(content: Comment | Submission) -> bool:
 
 
 async def is_mod(user: Redditor, subreddit: Subreddit) -> bool:
-    """Checks if the author is moderator or not
+    """Checks if the author is a moderator.
 
     :param user: The Reddit user whose moderator status will be checked.
     :param subreddit: The subreddit where the user's moderator status will be checked.
 
-    :returns: True if user is moderator otherwise False
+    :returns: True if the user is a moderator, otherwise False.
 
     """
     moderators_list = await subreddit.moderator()
-    if user in moderators_list:
-        return True
-    else:
-        return False
+    return user in moderators_list
 
 
-async def is_mod_or_courier(author: Optional[Redditor], subreddit: Subreddit) -> bool:
-    """Checks if the author is mod.
+async def is_courier(author: Optional[Redditor], subreddit: Subreddit) -> bool:
+    """Checks if the author is a courier.
 
-    :param author: The redditor which will be checked.
-    :param subreddit: The subreddit where the user's moderator/courier status will be checked.
+    :param author: The Redditor to be checked.
+    :param subreddit: The subreddit where the user's courier status will be checked.
 
-    :returns: True if the user is courier/moderator otherwise False
+    :returns: True if the user is a courier, otherwise False.
 
     """
     if author is None:
         return False
 
-    moderators_list = await subreddit.moderator()
-    if author in moderators_list:
-        return True
-
     wiki = await subreddit.wiki.get_page("custom_bot_config/courier_list")
     yaml_format = yaml.safe_load(wiki.content_md)
     courier_list = (x.lower() for x in yaml_format["couriers"])
-    if author.name.lower() in courier_list:
-        return True
+    return author.name.lower() in courier_list
 
-    return False
+
+async def is_mod_or_courier(author: Optional[Redditor], subreddit: Subreddit) -> bool:
+    """Checks if the author is a moderator or a courier.
+
+    :param author: The Redditor to be checked.
+    :param subreddit: The subreddit where the user's moderator/courier status will be checked.
+
+    :returns: True if the user is a moderator or a courier, otherwise False.
+
+    """
+    return await is_mod(author, subreddit) or await is_courier(author, subreddit)
 
 
 SUBMISSION_FLAIR_REGEX = re.compile("^XBOX|PlayStation|PC$", re.IGNORECASE)
