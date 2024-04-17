@@ -78,7 +78,7 @@ async def update_karma_logs(from_user: str, to_user: str, comment: Comment, conn
 
     """
     db_operations_logs.info(
-        f"Inserting karma logs: from_user={from_user}, to_user={to_user}, submission_id={comment.submission.id}, comment_permalink={comment.permalink}"
+        f"Inserting karma logs: from_user={from_user}, to_user={to_user}, submission_id={comment.submission.id}, comment_id={comment.id}"
     )
     karma_logs_collection = await get_mongo_collection(collection_name="karma_logs", fallout76marketplace_karma_db=connections.karma_db)
     await karma_logs_collection.insert_one(

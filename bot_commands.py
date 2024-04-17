@@ -88,7 +88,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
                 karma_checks = KarmaChecks.KARMA_AWARDING_LIMIT_REACHED
     else:
         karma_checks = KarmaChecks.KARMA_CHECKS_PASSED
-    bot_commands_logger.info(f"Checks Result: {karma_checks.name}, already_rewarded_chk={already_rewarded_chk}")
+    bot_commands_logger.info(f"Comment(id={comment.id}) Checks Result: {karma_checks.name}, already_rewarded_chk={already_rewarded_chk}")
 
     match karma_checks:
         case KarmaChecks.KARMA_CHECKS_PASSED:
