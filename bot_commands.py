@@ -42,7 +42,7 @@ async def update_karma(parent_post: Comment | Submission, karma_change: int, con
     # Reconstructing user flair from their profile on db
     gamertags: list[GamerTag] = profile["gamertags"]
     platforms_emojis = {f":{gamertag['platform'].lower()}:" for gamertag in gamertags}
-    flair_label = "Courier" if await is_courier(parent_post.author, connections.fo76_subreddit) else "Karma"
+    flair_label = "Verified Courier" if await is_courier(parent_post.author, connections.fo76_subreddit) else "Karma"
     user_flair = f"{' '.join(platforms_emojis).strip()} {flair_label}: {profile['karma'] + profile['m76_karma']}"
     await update_flair(parent_post=parent_post, user_flair=user_flair, karma=profile["karma"], connections=connections)
 
