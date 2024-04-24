@@ -81,7 +81,7 @@ async def is_mod_or_courier(author: Optional[Redditor], subreddit: Subreddit) ->
     return await is_mod(author, subreddit) or await is_courier(author, subreddit)
 
 
-SUBMISSION_FLAIR_REGEX = re.compile("^XBOX|PlayStation|PC$", re.IGNORECASE)
+SUBMISSION_FLAIR_REGEX = re.compile("^(XBOX|PlayStation|PC)$", re.IGNORECASE)
 
 
 async def flair_checks(comment: Comment) -> bool:

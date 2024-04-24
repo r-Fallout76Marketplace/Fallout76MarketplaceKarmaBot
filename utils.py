@@ -99,7 +99,7 @@ async def get_karma_db() -> AsyncGenerator[AsyncIOMotorDatabase, None]:
 
 
 @asynccontextmanager
-async def create_reddit_instance() -> Reddit:
+async def create_reddit_instance() -> AsyncGenerator[Reddit, None]:
     """Creates Reddit instance and returns the object
 
     :returns: Reddit instance object.

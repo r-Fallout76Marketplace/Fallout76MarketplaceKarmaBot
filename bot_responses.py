@@ -127,7 +127,7 @@ async def already_rewarded_comment(comment: Comment, permalink: str) -> None:
     """
     p_comment = await comment.parent()
     await p_comment.load()
-    comment_body = f"Hi u/{comment.author.name}! You have already rewarded {p_comment.author.name} in this submission. " f"See [here]({permalink})"
+    comment_body = f"Hi u/{comment.author.name}! You have already rewarded {p_comment.author.name} in this submission. See [here]({permalink})"
     await reply(comment, comment_body)
 
 
