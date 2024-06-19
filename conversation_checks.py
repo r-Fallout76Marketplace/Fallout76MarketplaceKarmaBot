@@ -23,6 +23,7 @@ class KarmaChecks(IntEnum):
     INCORRECT_SUBMISSION_TYPE = auto()
     KARMA_AWARDING_LIMIT_REACHED = auto()
     MORE_THAN_TWO_USERS = auto()
+    UNAUTHORIZED = auto()
 
 
 def is_removed_or_deleted(content: Comment | Submission) -> bool:

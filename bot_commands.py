@@ -68,6 +68,7 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
     already_rewarded_chk = (KarmaChecks.ALREADY_REWARDED, "")  # Initializing variable for later use
     if not is_user_mod:
         karma_checks = await checks_for_karma_command(comment, connections.fo76_subreddit)
+        karma_checks = KarmaChecks.UNAUTHORIZED if karma_change == -1 else KarmaChecks.KARMA_CHECKS_PASSED
 
         # Only worth checking if previous checks have passed
         if karma_checks == KarmaChecks.KARMA_CHECKS_PASSED:
@@ -116,6 +117,8 @@ async def karma_command(comment: Comment, karma_change: int, connections: Connec
             # TODO: Send message to mod channel
         case KarmaChecks.MORE_THAN_TWO_USERS:
             await bot_responses.more_than_two_users_involved(comment)
+        case KarmaChecks.UNAUTHORIZED:
+            await bot_responses.karma_subtract_failed(comment)
 
 
 async def close_command(comment: Comment, fo76_subreddit: Subreddit) -> None:
