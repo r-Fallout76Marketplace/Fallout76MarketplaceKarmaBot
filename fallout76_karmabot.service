@@ -5,8 +5,8 @@ Requires=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/root/Bots/Fallout76MarketplaceKarmaBot
-ExecStart=/root/Bots/Fallout76MarketplaceKarmaBot/main.py
+WorkingDirectory=%h/Programming/Bots/Fallout76MarketplaceKarmaBot
+ExecStart=%h/Programming/Bots/Fallout76MarketplaceKarmaBot/main.py
 Restart=always
 RestartSec=15s
 
