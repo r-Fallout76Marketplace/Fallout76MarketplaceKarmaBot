@@ -1,7 +1,7 @@
 [Unit]
 Description=Runs KarmaBot for r/Fallout76Marketplace
-After=network-online.target
-Requires=network-online.target
+After=default.target
+ExecStartPre=/bin/sh -c 'until ping -c1 google.com; do sleep 1; done;'
 
 [Service]
 Type=simple
@@ -11,4 +11,4 @@ Restart=always
 RestartSec=15s
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
