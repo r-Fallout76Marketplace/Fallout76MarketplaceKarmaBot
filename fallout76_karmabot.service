@@ -5,8 +5,8 @@ ExecStartPre=/bin/sh -c 'until ping -c1 google.com; do sleep 1; done;'
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Programming/Bots/Fallout76MarketplaceKarmaBot
-ExecStart=%h/Programming/Bots/Fallout76MarketplaceKarmaBot/main.py
+WorkingDirectory=%h/Bots/Fallout76MarketplaceKarmaBot
+ExecStart=%h/Bots/Fallout76MarketplaceKarmaBot/main.py
 Restart=always
 RestartSec=15s
 
